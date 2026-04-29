@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js"></script>
 <style>
   :root {
     --bg-0: #07090d;
@@ -1149,7 +1150,7 @@
   <div class="container">
     <div class="section-tag">Section 03 · Physical Footprint</div>
     <h2>Where Fluxys actually operates</h2>
-    <p class="lead">Click any node to see what's there, what it's worth, and why it matters. The whole thesis lives on this map.</p>
+    <p class="lead">Click any node — Belgian assets, upstream supply points, or downstream country handoffs — to see what's there, what it's worth, and why it matters. Pan and zoom freely. The whole thesis lives on this map.</p>
 
     <div class="map-wrap">
       <div id="fluxysMap" style="width:100%; height:600px; border-radius:12px; background:#0a1019;"></div>
@@ -2242,6 +2243,8 @@ new Chart(document.getElementById('capexChart'), {
     m.bindTooltip(a.name, {direction:'top', offset:[0,-6]});
   });
 
+  // ----- Source / destination markers (endpoints of flows) -----
+
   // CO2 destination — Norwegian offshore storage
   L.circleMarker([60.5, 4.0], {
     radius: 9, fillColor: '#fb923c', color: '#fff', weight: 2, fillOpacity: 0.95
@@ -2251,42 +2254,105 @@ new Chart(document.getElementById('capexChart'), {
 
   // Norway gas field / Zeepipe origin
   L.circleMarker([58.97, 5.73], {
-    radius: 8, fillColor: '#00d4b4', color: '#fff', weight: 2, fillOpacity: 0.7
+    radius: 9, fillColor: '#00d4b4', color: '#fff', weight: 2, fillOpacity: 0.85
   }).addTo(map)
-    .bindPopup('<strong>Norwegian Gas Fields (Stavanger area)</strong><div class="lpop-type">UPSTREAM SUPPLY · EQUINOR</div>~162 TWh/year of natural gas supplied via the Zeepipe offshore pipeline directly to Zeebrugge. Largest single-source upstream supplier.')
-    .bindTooltip('Norway gas (Equinor)', {direction:'top'});
+    .bindPopup('<strong>Norwegian Gas Fields (Stavanger / Kårstø)</strong><div class="lpop-type">UPSTREAM SOURCE · EQUINOR</div>~162 TWh/year of natural gas piped to Zeebrugge via the Zeepipe offshore pipeline. Largest single-source upstream supplier in Fluxys\'s footprint.')
+    .bindTooltip('Norway · Equinor source (162 TWh)', {direction:'top'});
 
-  // Gas flow polylines — supply (teal)
-  function flow(coords, color, weight, dash) {
-    return L.polyline(coords, {color, weight, opacity:0.8, dashArray: dash}).addTo(map);
+  // UK Bacton — Interconnector / BBL pipeline origin
+  L.circleMarker([52.85, 1.45], {
+    radius: 8, fillColor: '#00d4b4', color: '#fff', weight: 2, fillOpacity: 0.85
+  }).addTo(map)
+    .bindPopup('<strong>Bacton (UK)</strong><div class="lpop-type">UPSTREAM SOURCE · INTERCONNECTOR / BBL</div>UK gas terminal — origin of the subsea Interconnector and BBL pipelines. Fluxys holds 15.1% of Interconnector and 25% of BBL. ~58 TWh/year supplies Belgium.')
+    .bindTooltip('Bacton UK · Interconnector (58 TWh)', {direction:'top'});
+
+  // LNG carrier approach point (open North Sea)
+  L.circleMarker([51.85, 1.6], {
+    radius: 7, fillColor: '#00d4b4', color: '#fff', weight: 2, fillOpacity: 0.55, dashArray: '3,2'
+  }).addTo(map)
+    .bindPopup('<strong>LNG Tanker Approach Route</strong><div class="lpop-type">UPSTREAM SOURCE · LNG SHIPS</div>~147 TWh/year of LNG arrives by sea at Zeebrugge from Qatar, the US, and others. Long-term ship-or-pay terminalling contracts insulate revenue from physical volume risk.')
+    .bindTooltip('LNG carriers (147 TWh)', {direction:'top'});
+
+  // Germany destination — OGE / Düsseldorf
+  L.circleMarker([51.23, 6.78], {
+    radius: 11, fillColor: '#fbbf24', color: '#fff', weight: 2, fillOpacity: 0.9
+  }).addTo(map)
+    .bindPopup('<strong>Germany (OGE handoff)</strong><div class="lpop-type">DOWNSTREAM · 214 TWh OUTBOUND</div>~25% of Germany\'s total gas consumption transits through Belgium via Liège/Eynatten. Handed off to <strong>Open Grid Europe</strong> — Germany\'s largest gas TSO (12,000 km grid). Fluxys owns 24.1% of OGE; bidding with Brookfield + GIP for the remaining 75.89%.')
+    .bindTooltip('Germany · OGE (214 TWh)', {direction:'top'});
+
+  // Netherlands destination — Rotterdam / Gasunie handoff
+  L.circleMarker([51.92, 4.48], {
+    radius: 8, fillColor: '#fbbf24', color: '#fff', weight: 2, fillOpacity: 0.9
+  }).addTo(map)
+    .bindPopup('<strong>Netherlands (Gasunie handoff)</strong><div class="lpop-type">DOWNSTREAM · 90 TWh OUTBOUND</div>Gas exits Belgium northward into Gasunie\'s Dutch grid. Future plan: Belgian + Dutch H₂ grids interconnected via Hynetwork JDA by 2030.')
+    .bindTooltip('Netherlands · Gasunie (90 TWh)', {direction:'top'});
+
+  // France destination — Lille / GRTgaz handoff
+  L.circleMarker([50.63, 3.07], {
+    radius: 7, fillColor: '#fbbf24', color: '#fff', weight: 2, fillOpacity: 0.9
+  }).addTo(map)
+    .bindPopup('<strong>France (GRTgaz handoff)</strong><div class="lpop-type">DOWNSTREAM · 16 TWh OUTBOUND</div>Smaller transit volume to French gas grid (GRTgaz). Future H₂ link via the HY4Link project alongside Creos (Luxembourg).')
+    .bindTooltip('France · GRTgaz (16 TWh)', {direction:'top'});
+
+  // Luxembourg destination — Creos handoff
+  L.circleMarker([49.61, 6.13], {
+    radius: 6, fillColor: '#fbbf24', color: '#fff', weight: 2, fillOpacity: 0.9
+  }).addTo(map)
+    .bindPopup('<strong>Luxembourg (Creos handoff)</strong><div class="lpop-type">DOWNSTREAM · 7 TWh OUTBOUND</div>Gas handoff to Creos, Luxembourg\'s gas TSO. Partner in the cross-border HY4Link H₂ project.')
+    .bindTooltip('Luxembourg · Creos (7 TWh)', {direction:'top'});
+
+  // ----- Gas flow polylines with arrowheads -----
+  // Helper: draw a flow line with optional arrowhead and tooltip
+  function flow(coords, color, weight, opts) {
+    opts = opts || {};
+    const line = L.polyline(coords, {
+      color: color,
+      weight: weight,
+      opacity: 0.85,
+      dashArray: opts.dash || null,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+    if (opts.tooltip) line.bindTooltip(opts.tooltip, {sticky:true});
+    // Add arrowhead via PolylineDecorator
+    if (typeof L.polylineDecorator === 'function' && !opts.noArrow) {
+      L.polylineDecorator(line, {
+        patterns: [{
+          offset: '100%',
+          repeat: 0,
+          symbol: L.Symbol.arrowHead({
+            pixelSize: opts.arrowSize || 14,
+            polygon: true,
+            pathOptions: {
+              stroke: false,
+              fillOpacity: 0.95,
+              fillColor: color,
+              color: color
+            }
+          })
+        }]
+      }).addTo(map);
+    }
+    return line;
   }
 
-  // Norway → Zeebrugge (heavy supply)
-  flow([[58.97, 5.73], [55.0, 4.5], [52.0, 3.5], [51.33, 3.20]], '#00d4b4', 3).bindTooltip('162 TWh · Equinor / Zeepipe', {sticky:true});
+  // Inbound supplies (teal) — arrowheads point INTO Zeebrugge
+  flow([[58.97, 5.73], [55.5, 4.6], [53.0, 3.7], [51.45, 3.25], [51.33, 3.20]], '#00d4b4', 3.5, {tooltip:'Norway → Zeebrugge · 162 TWh · Equinor / Zeepipe'});
+  flow([[52.85, 1.45], [52.2, 2.0], [51.6, 2.7], [51.40, 3.05], [51.33, 3.20]], '#00d4b4', 2.5, {tooltip:'UK Bacton → Zeebrugge · 58 TWh · Interconnector'});
+  flow([[51.85, 1.6], [51.55, 2.3], [51.40, 2.9], [51.33, 3.20]], '#00d4b4', 2.8, {dash:'7,4', tooltip:'LNG ships → Zeebrugge · 147 TWh · Qatar/US LNG'});
 
-  // UK Bacton → Zeebrugge (Interconnector)
-  flow([[52.85, 1.45], [52.2, 2.0], [51.5, 2.8], [51.33, 3.20]], '#00d4b4', 2).bindTooltip('58 TWh · UK (Interconnector)', {sticky:true});
+  // Outbound transit (gold) — arrowheads point INTO destinations
+  flow([[50.63, 5.57], [50.85, 6.20], [51.10, 6.65], [51.23, 6.78]], '#fbbf24', 5, {arrowSize:18, tooltip:'214 TWh → Germany · 25% of DE consumption · OGE handoff'});
+  flow([[51.22, 4.40], [51.55, 4.45], [51.85, 4.46], [51.92, 4.48]], '#fbbf24', 3.2, {tooltip:'90 TWh → Netherlands · Gasunie handoff'});
+  flow([[50.45, 3.95], [50.55, 3.50], [50.63, 3.07]], '#fbbf24', 2.2, {tooltip:'16 TWh → France · GRTgaz handoff'});
+  flow([[50.41, 4.45], [50.10, 5.35], [49.61, 6.13]], '#fbbf24', 1.8, {tooltip:'7 TWh → Luxembourg · Creos handoff'});
 
-  // LNG inbound (from open North Atlantic) → Zeebrugge
-  flow([[51.7, 1.5], [51.5, 2.3], [51.33, 3.20]], '#00d4b4', 2.5, '6,4').bindTooltip('147 TWh · LNG (Qatar, US, others)', {sticky:true});
+  // Future H2 backbone (purple, dashed) — within Belgium
+  flow([[51.05, 3.72], [51.22, 4.40]], '#a78bfa', 3.5, {dash:'7,5', tooltip:'Future H₂ pipeline · Ghent ↔ Antwerp (under construction since 2025)'});
+  flow([[51.22, 4.40], [50.93, 5.34]], '#a78bfa', 3.5, {dash:'7,5', tooltip:'Future H₂ backbone · Antwerp → Albert Canal'});
 
-  // Belgium → Germany (HEAVY, 214 TWh)
-  flow([[50.63, 5.57], [50.9, 6.5], [51.2, 6.78]], '#fbbf24', 4.5).bindTooltip('214 TWh · 25% of Germany\'s gas consumption', {sticky:true});
-
-  // Belgium → NL
-  flow([[51.22, 4.40], [51.6, 4.45], [51.92, 4.48]], '#fbbf24', 3).bindTooltip('90 TWh → Netherlands', {sticky:true});
-
-  // Belgium → France
-  flow([[50.42, 4.20], [50.55, 3.5], [50.63, 3.07]], '#fbbf24', 2).bindTooltip('16 TWh → France', {sticky:true});
-
-  // Belgium → Luxembourg
-  flow([[50.42, 4.5], [50.0, 5.5], [49.61, 6.13]], '#fbbf24', 1.5).bindTooltip('7 TWh → Luxembourg', {sticky:true});
-
-  // Future H2 backbone (Antwerp ↔ Ghent ↔ Albert Canal)
-  flow([[51.05, 3.72], [51.22, 4.40], [50.93, 5.34]], '#a78bfa', 3, '6,5').bindTooltip('Future H₂ backbone (under construction)', {sticky:true});
-
-  // Future CO2HighwayEurope (Antwerp → offshore Norway)
-  flow([[51.22, 4.40], [54.0, 4.0], [58.0, 4.0], [60.5, 4.0]], '#fb923c', 2.5, '4,5').bindTooltip('CO₂HighwayEurope → offshore storage', {sticky:true});
+  // Future CO2HighwayEurope (orange dashed) — Antwerp to Norwegian offshore
+  flow([[51.22, 4.40], [53.5, 4.10], [56.5, 4.05], [59.5, 4.0], [60.5, 4.0]], '#fb923c', 2.8, {dash:'5,6', arrowSize:16, tooltip:'CO₂HighwayEurope → Norwegian offshore storage (Equinor partnership)'});
 
   // Add custom legend control
   const legend = L.control({position: 'bottomleft'});
@@ -2294,16 +2360,18 @@ new Chart(document.getElementById('capexChart'), {
     const div = L.DomUtil.create('div');
     div.style.cssText = 'background:rgba(13,17,23,0.92); padding:10px 14px; border-radius:8px; border:1px solid #1f2a3a; font-size:11px; color:#c5cdd9; line-height:1.7;';
     div.innerHTML = `
-      <div style="font-weight:700; color:#00d4b4; margin-bottom:4px; font-family:'JetBrains Mono', monospace; letter-spacing:0.06em;">LEGEND</div>
-      <div><span style="display:inline-block; width:10px; height:10px; background:#00d4b4; border-radius:50%; margin-right:6px;"></span>LNG Terminal</div>
+      <div style="font-weight:700; color:#00d4b4; margin-bottom:6px; font-family:'JetBrains Mono', monospace; letter-spacing:0.06em;">LEGEND</div>
+      <div style="font-size:10px; color:#5d6878; text-transform:uppercase; letter-spacing:0.08em; margin-top:4px;">Belgian assets</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#00d4b4; border-radius:50%; margin-right:6px;"></span>LNG Terminal (Zeebrugge)</div>
       <div><span style="display:inline-block; width:10px; height:10px; background:#a78bfa; border-radius:50%; margin-right:6px;"></span>H₂ + CO₂ Hub</div>
-      <div><span style="display:inline-block; width:10px; height:10px; background:#fbbf24; border-radius:50%; margin-right:6px;"></span>Storage / Critical Asset</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#fbbf24; border-radius:50%; margin-right:6px;"></span>Storage</div>
       <div><span style="display:inline-block; width:10px; height:10px; background:#4fc3f7; border-radius:50%; margin-right:6px;"></span>Demand / Border Node</div>
       <div><span style="display:inline-block; width:10px; height:10px; background:#fb923c; border-radius:50%; margin-right:6px;"></span>CO₂ Network Zone</div>
-      <div style="margin-top:6px;"><span style="display:inline-block; width:18px; height:2px; background:#00d4b4; margin-right:6px; vertical-align:middle;"></span>Inbound supply</div>
-      <div><span style="display:inline-block; width:18px; height:2px; background:#fbbf24; margin-right:6px; vertical-align:middle;"></span>Transit out</div>
-      <div><span style="display:inline-block; width:18px; height:2px; background:#a78bfa; margin-right:6px; vertical-align:middle; border-top:2px dashed #a78bfa;"></span>Future H₂</div>
-      <div><span style="display:inline-block; width:18px; height:2px; border-top:2px dashed #fb923c; margin-right:6px; vertical-align:middle;"></span>Future CO₂</div>
+      <div style="font-size:10px; color:#5d6878; text-transform:uppercase; letter-spacing:0.08em; margin-top:6px;">Sources / destinations</div>
+      <div><span style="display:inline-block; width:14px; height:2px; background:#00d4b4; margin-right:6px; vertical-align:middle;"></span>→ Supply (Norway / UK / LNG)</div>
+      <div><span style="display:inline-block; width:14px; height:2px; background:#fbbf24; margin-right:6px; vertical-align:middle;"></span>→ Transit (DE / NL / FR / LU)</div>
+      <div><span style="display:inline-block; width:14px; height:0; border-top:2px dashed #a78bfa; margin-right:6px; vertical-align:middle;"></span>Future H₂ backbone</div>
+      <div><span style="display:inline-block; width:14px; height:0; border-top:2px dashed #fb923c; margin-right:6px; vertical-align:middle;"></span>Future CO₂ corridor</div>
     `;
     return div;
   };
