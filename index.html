@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
   :root {
     --bg-0: #07090d;
@@ -363,6 +365,66 @@
   .map-tooltip strong { color: var(--teal); display: block; font-size: 13px; margin-bottom: 4px; }
   .map-asset { cursor: pointer; transition: filter 0.2s; }
   .map-asset:hover { filter: brightness(1.4) drop-shadow(0 0 12px rgba(0,212,180,0.6)); }
+
+  /* Leaflet overrides for dark theme */
+  .leaflet-container {
+    background: #0a1019 !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  .leaflet-popup-content-wrapper {
+    background: var(--bg-3) !important;
+    color: var(--text-0) !important;
+    border: 1px solid var(--teal) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important;
+    padding: 4px !important;
+  }
+  .leaflet-popup-content { margin: 10px 14px !important; font-size: 12px !important; line-height: 1.5 !important; max-width: 240px !important; }
+  .leaflet-popup-content strong { color: var(--teal); display: block; font-size: 13px; margin-bottom: 4px; }
+  .leaflet-popup-content .lpop-type { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .leaflet-popup-tip { background: var(--bg-3) !important; border-left: 1px solid var(--teal); border-bottom: 1px solid var(--teal); }
+  .leaflet-popup-close-button { color: var(--text-2) !important; }
+  .leaflet-control-zoom a {
+    background: var(--bg-2) !important;
+    color: var(--text-1) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-zoom a:hover { background: var(--bg-3) !important; color: var(--teal) !important; }
+  .leaflet-control-attribution {
+    background: rgba(13,17,23,0.85) !important;
+    color: var(--text-3) !important;
+    font-size: 10px !important;
+  }
+  .leaflet-control-attribution a { color: var(--teal-dim) !important; }
+
+  /* Floating flow info panel on map */
+  .map-flow-panel {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    z-index: 500;
+    min-width: 220px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  }
+  .flow-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 12px;
+    color: var(--text-1);
+  }
+  .flow-line .flow-lab { color: var(--text-2); font-size: 11px; }
+  .flow-line .flow-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .flow-line .flow-sub { color: var(--text-3); font-size: 10px; padding-left: 10px; }
+  @media (max-width: 800px) {
+    .map-flow-panel { position: static; margin-top: 14px; }
+  }
 
   /* BUSINESS MODEL FLOW */
   .flow-diagram {
@@ -774,13 +836,13 @@
     text-align: right;
   }
 
-  /* TRADINGVIEW */
+  /* PRICE CHART (replaces TradingView) */
   .tv-wrap {
     background: var(--bg-1);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 18px;
-    height: 540px;
+    padding: 22px;
+    height: 460px;
   }
 
   /* FOOTER */
@@ -1090,276 +1152,20 @@
     <p class="lead">Click any node to see what's there, what it's worth, and why it matters. The whole thesis lives on this map.</p>
 
     <div class="map-wrap">
-      <div id="mapTooltip" class="map-tooltip"></div>
-      <svg class="map-svg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0a1929" stop-opacity="0.55"/>
-            <stop offset="1" stop-color="#0a1929" stop-opacity="0.0"/>
-          </linearGradient>
-          <linearGradient id="belgiumGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#1d3046"/>
-            <stop offset="1" stop-color="#13243a"/>
-          </linearGradient>
-          <radialGradient id="seaTexture" cx="40%" cy="20%">
-            <stop offset="0" stop-color="#0d1f33" stop-opacity="0.55"/>
-            <stop offset="1" stop-color="#07090d" stop-opacity="0"/>
-          </radialGradient>
-          <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L6,3 z" fill="#00d4b4"/>
-          </marker>
-          <marker id="arrowOut" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L6,3 z" fill="#fbbf24"/>
-          </marker>
-        </defs>
-
-        <!-- Sea / Background -->
-        <rect width="1000" height="720" fill="#07090d"/>
-        <rect width="1000" height="320" fill="url(#seaGrad)"/>
-        <rect width="1000" height="720" fill="url(#seaTexture)"/>
-
-        <!-- North Sea label -->
-        <text x="455" y="220" fill="#3d5775" font-size="17" font-style="italic" font-family="Inter" letter-spacing="3">North Sea</text>
-        <text x="465" y="240" fill="#3d5775" font-size="10" font-style="italic" font-family="Inter">Fluxys's main supply gateway</text>
-
-        <!-- ============================================================
-             COUNTRY OUTLINES — projected from real lat/lon coordinates
-             Projection: ~38.5px per ° longitude, ~35px per ° latitude
-             Origin: -10°W, 62°N at top-left
-             ============================================================ -->
-
-        <!-- Ireland -->
-        <path d="M 30,290 L 65,285 L 105,290 L 145,295 L 152,320 L 148,348 L 130,365 L 100,372 L 65,365 L 35,348 L 25,318 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="65" y="335" fill="#3d5775" font-size="11" font-weight="600" font-family="Inter">IRELAND</text>
-
-        <!-- United Kingdom (England + Wales + Scotland with characteristic shape) -->
-        <path d="M 245,125 L 275,120 L 300,135 L 320,158
-                 L 335,180 L 350,175 L 360,168 L 365,180
-                 L 360,200 L 380,210 L 405,230 L 420,260
-                 L 432,290 L 438,318 L 444,345 L 442,368
-                 L 432,388 L 415,402 L 392,410 L 365,415
-                 L 340,418 L 310,420 L 280,420 L 245,418
-                 L 218,415 L 200,420 L 195,440 L 215,438
-                 L 235,425 L 220,415 L 240,410
-                 L 245,388 L 250,360 L 248,335
-                 L 255,310 L 260,285 L 252,265
-                 L 260,245 L 252,222 L 248,195
-                 L 235,178 L 230,160 L 235,140 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="320" y="280" fill="#5d6878" font-size="16" font-weight="800" font-family="Inter" letter-spacing="2">UK</text>
-        <text x="295" y="298" fill="#3d5775" font-size="10" font-family="Inter">Great Britain</text>
-
-        <!-- Norway (south coast - the gas-producing region facing Belgium across the North Sea) -->
-        <path d="M 568,32 L 600,25 L 645,28 L 695,30 L 745,35 L 795,42
-                 L 840,55 L 870,72 L 880,95 L 870,118 L 840,128
-                 L 800,135 L 750,140 L 700,142 L 650,142 L 605,138
-                 L 575,128 L 558,108 L 552,82 L 558,52 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="700" y="80" fill="#5d6878" font-size="15" font-weight="800" font-family="Inter" letter-spacing="3">NORWAY</text>
-        <text x="700" y="98" fill="#3d5775" font-size="10" font-family="Inter">North Sea gas fields · Equinor</text>
-
-        <!-- Netherlands -->
-        <path d="M 535,371 L 558,371 L 605,388 L 660,365 L 668,340
-                 L 665,310 L 650,294 L 615,290 L 590,295 L 568,308
-                 L 555,328 L 540,355 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="595" y="335" fill="#5d6878" font-size="12" font-weight="700" font-family="Inter" letter-spacing="1">NETHERLANDS</text>
-
-        <!-- Germany (large country - shares borders with NL, BE, LU, FR) -->
-        <path d="M 668,340 L 665,310 L 670,280 L 720,272 L 770,275
-                 L 762,250 L 778,235 L 825,242 L 870,255 L 905,272
-                 L 940,295 L 962,328 L 968,378 L 962,425 L 940,470
-                 L 905,498 L 860,512 L 805,510 L 745,505 L 690,485
-                 L 660,460 L 645,440 L 632,420 L 615,414 L 612,397
-                 L 660,365 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="775" y="395" fill="#5d6878" font-size="22" font-weight="800" font-family="Inter" letter-spacing="3">GERMANY</text>
-        <text x="775" y="418" fill="#3d5775" font-size="11" font-family="Inter">OGE · 24.1% Fluxys stake</text>
-        <text x="775" y="434" fill="#3d5775" font-size="11" font-family="Inter">12,000 km gas grid</text>
-
-        <!-- Luxembourg (small) -->
-        <path d="M 615,414 L 632,420 L 632,438 L 612,438 L 608,425 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="640" y="438" fill="#3d5775" font-size="9" font-weight="700" font-family="Inter">LUX</text>
-
-        <!-- France (large country) -->
-        <path d="M 192,478 L 230,460 L 280,440 L 340,425 L 405,410
-                 L 460,400 L 485,395 L 517,408 L 555,442 L 601,438
-                 L 632,438 L 670,460 L 690,485 L 660,510 L 658,558
-                 L 685,590 L 668,640 L 595,660 L 478,685 L 360,690
-                 L 290,672 L 250,632 L 218,580 L 195,520 Z"
-              fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
-        <text x="380" y="585" fill="#5d6878" font-size="22" font-weight="800" font-family="Inter" letter-spacing="3">FRANCE</text>
-
-        <!-- ===== BELGIUM (the protagonist) — pentagonal shape with eastern protrusion ===== -->
-        <path d="M 485,395 L 512,376 L 558,371 L 605,388 L 612,397
-                 L 615,414 L 608,425 L 601,438 L 555,442 L 517,408 Z"
-              fill="url(#belgiumGrad)" stroke="#00d4b4" stroke-width="2.5" opacity="1"/>
-        <text x="535" y="465" fill="#00d4b4" font-size="13" font-weight="800" font-family="Inter" letter-spacing="2" text-anchor="middle">BELGIUM</text>
-        <text x="535" y="478" fill="#8a96a8" font-size="9" font-family="Inter" letter-spacing="0.5" text-anchor="middle">Fluxys network · 4,000 km</text>
-
-        <!-- ============================================================
-             INTERNAL FLUXYS PIPELINE NETWORK
-             ============================================================ -->
-        <g stroke="#00d4b4" stroke-width="1.4" fill="none" opacity="0.5">
-          <!-- Zeebrugge → Ghent -->
-          <path d="M 510,376 L 528,384"/>
-          <!-- Ghent → Antwerp -->
-          <path d="M 528,384 L 554,378"/>
-          <!-- Antwerp → Loenhout -->
-          <path d="M 554,378 L 567,374"/>
-          <!-- Antwerp → Brussels -->
-          <path d="M 554,378 L 552,391"/>
-          <!-- Brussels → Liège -->
-          <path d="M 552,391 L 599,399"/>
-          <!-- Antwerp → Albert Canal -->
-          <path d="M 554,378 L 580,388"/>
-          <!-- Albert Canal → Liège -->
-          <path d="M 580,388 L 599,399"/>
-          <!-- Brussels → Charleroi -->
-          <path d="M 552,391 L 542,408"/>
-          <!-- Zeebrugge → Brussels (south route) -->
-          <path d="M 510,376 Q 530,388 552,391"/>
-          <!-- Ghent → Brussels -->
-          <path d="M 528,384 L 552,391"/>
-        </g>
-
-        <!-- ============================================================
-             CROSS-BORDER FLOWS
-             ============================================================ -->
-
-        <!-- LNG inbound (from open sea, NW) -->
-        <path d="M 320,300 Q 410,335 495,376" fill="none" stroke="#00d4b4" stroke-width="2.2" stroke-dasharray="6,3" marker-end="url(#arrowTeal)" opacity="0.85"/>
-        <text x="295" y="285" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">147 TWh LNG ↓</text>
-        <text x="295" y="300" fill="#5d6878" font-size="9" font-family="Inter">Qatar · USA · others</text>
-
-        <!-- Norway inbound (Zeepipe) - long curving arrow from Norway south coast to Zeebrugge -->
-        <path d="M 660,140 Q 580,260 510,376" fill="none" stroke="#00d4b4" stroke-width="2.5" marker-end="url(#arrowTeal)" opacity="0.85"/>
-        <text x="585" y="245" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">162 TWh (Zeepipe)</text>
-        <text x="585" y="260" fill="#5d6878" font-size="9" font-family="Inter">Equinor offshore fields</text>
-
-        <!-- UK inbound (from UK east coast) -->
-        <path d="M 425,395 Q 460,388 495,378" fill="none" stroke="#00d4b4" stroke-width="1.8" marker-end="url(#arrowTeal)" opacity="0.8"/>
-        <text x="380" y="440" fill="#00d4b4" font-size="10" font-weight="700" font-family="JetBrains Mono">58 TWh UK</text>
-        <text x="380" y="455" fill="#5d6878" font-size="9" font-family="Inter">via Interconnector / BBL</text>
-
-        <!-- Outbound to Germany (HEAVY 214 TWh flow) -->
-        <path d="M 605,400 Q 670,398 735,396" fill="none" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrowOut)" opacity="0.92"/>
-        <text x="660" y="386" fill="#fbbf24" font-size="14" font-weight="700" font-family="JetBrains Mono">214 TWh →</text>
-        <text x="660" y="420" fill="#fbbf24" font-size="9" font-family="Inter">25% of DE consumption</text>
-
-        <!-- Outbound to NL -->
-        <path d="M 562,372 Q 588,335 605,300" fill="none" stroke="#fbbf24" stroke-width="2.4" marker-end="url(#arrowOut)" opacity="0.85"/>
-        <text x="608" y="320" fill="#fbbf24" font-size="11" font-weight="700" font-family="JetBrains Mono">90 TWh ↑</text>
-
-        <!-- Outbound to France -->
-        <path d="M 540,442 Q 525,475 510,510" fill="none" stroke="#fbbf24" stroke-width="1.8" marker-end="url(#arrowOut)" opacity="0.8"/>
-        <text x="438" y="490" fill="#fbbf24" font-size="11" font-weight="700" font-family="JetBrains Mono">16 TWh ↓</text>
-        <text x="438" y="503" fill="#5d6878" font-size="9" font-family="Inter">to France</text>
-
-        <!-- Outbound to Luxembourg -->
-        <path d="M 605,420 L 622,425" fill="none" stroke="#fbbf24" stroke-width="1.4" marker-end="url(#arrowOut)" opacity="0.78"/>
-        <text x="635" y="453" fill="#fbbf24" font-size="9" font-weight="700" font-family="JetBrains Mono">7 TWh</text>
-
-        <!-- Future H2 Backbone (dashed purple) - Antwerp/Ghent corridor -->
-        <g stroke="#a78bfa" stroke-width="2" fill="none" stroke-dasharray="5,4" opacity="0.85">
-          <path d="M 528,384 L 554,378"/>
-          <path d="M 554,378 L 580,388"/>
-        </g>
-
-        <!-- CO2HighwayEurope future flow (dashed orange) - Antwerp NE to Norwegian offshore -->
-        <g stroke="#fb923c" stroke-width="2" fill="none" stroke-dasharray="3,4" opacity="0.85">
-          <path d="M 554,378 Q 620,250 700,95"/>
-        </g>
-        <text x="585" y="200" fill="#fb923c" font-size="11" font-weight="700" font-family="JetBrains Mono">CO₂HighwayEurope</text>
-        <text x="585" y="215" fill="#fb923c" font-size="9" font-family="Inter">→ Norwegian offshore storage</text>
-
-        <!-- ============================================================
-             ASSETS / NODES (clickable for tooltip)
-             ============================================================ -->
-
-        <!-- Zeebrugge LNG Terminal -->
-        <g class="map-asset" data-name="Zeebrugge LNG Terminal" data-type="LNG TERMINAL · €306m RAB" data-detail="197 TWh annual regasification capacity. The crown jewel asset and entry point for North-West European LNG. Saw ~80 ship unloadings in H1 2025. Long-term ship-or-pay contracts include Qatari LNG. Bio-LNG truck loading expanded in 2025.">
-          <circle cx="510" cy="376" r="22" fill="none" stroke="#00d4b4" stroke-width="1" opacity="0.25"/>
-          <circle cx="510" cy="376" r="13" fill="#00d4b4" stroke="#fff" stroke-width="2"/>
-          <text x="497" y="365" fill="#00d4b4" font-size="11" font-weight="700" font-family="Inter" text-anchor="end">ZEEBRUGGE</text>
-          <text x="497" y="378" fill="#8a96a8" font-size="9" font-family="JetBrains Mono" text-anchor="end">LNG · 197 TWh</text>
-        </g>
-
-        <!-- Antwerp -->
-        <g class="map-asset" data-name="Antwerp Port Cluster" data-type="H2 + CO2 HUB" data-detail="Industrial chemical cluster — Europe's #2 port. First open-access CO₂ pipeline under construction since Mar 2026 (Fluxys c-grid Antwerp JV with Pipelink + Air Liquide). First H₂ pipeline construction commenced 2025. Centerpiece of the multi-molecule strategy.">
-          <circle cx="554" cy="378" r="10" fill="#a78bfa" stroke="#fff" stroke-width="2"/>
-          <text x="554" y="362" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter" text-anchor="middle">ANTWERP</text>
-        </g>
-
-        <!-- Ghent -->
-        <g class="map-asset" data-name="Ghent Port" data-type="H2 CONNECTOR" data-detail="Connected to Antwerp via the first dedicated H₂ pipeline construction (commenced 2025). Industrial cluster connection for the future Belgian hydrogen backbone — designed to integrate into the European Hydrogen Backbone.">
-          <circle cx="528" cy="384" r="7" fill="#a78bfa" stroke="#fff" stroke-width="2"/>
-          <text x="525" y="400" fill="#a78bfa" font-size="9" font-weight="600" font-family="Inter" text-anchor="end">Ghent</text>
-        </g>
-
-        <!-- Loenhout -->
-        <g class="map-asset" data-name="Loenhout Storage" data-type="UNDERGROUND GAS STORAGE · €224m RAB" data-detail="Belgium's only underground gas storage facility. Provides critical seasonal flexibility to the NW European grid. Filled to capacity by early August 2025 — well ahead of EU winter buffer mandates.">
-          <circle cx="567" cy="374" r="7" fill="#fbbf24" stroke="#fff" stroke-width="2"/>
-          <text x="578" y="370" fill="#fbbf24" font-size="9" font-weight="600" font-family="Inter">Loenhout</text>
-          <text x="578" y="382" fill="#8a96a8" font-size="8" font-family="JetBrains Mono">Storage</text>
-        </g>
-
-        <!-- Brussels -->
-        <g class="map-asset" data-name="Brussels Hub" data-type="DEMAND CENTER" data-detail="Capital region demand center. Connected to all major arteries. Belgium's domestic gas consumption sits at 151 TWh/year (vs 480 TWh imports — most flows transit through to Germany/NL).">
-          <circle cx="552" cy="391" r="7" fill="#4fc3f7" stroke="#fff" stroke-width="2"/>
-          <text x="549" y="404" fill="#4fc3f7" font-size="9" font-weight="600" font-family="Inter" text-anchor="end">Brussels</text>
-        </g>
-
-        <!-- Albert Canal -->
-        <g class="map-asset" data-name="Albert Canal Industrial Zone" data-type="INDUSTRIAL CLUSTER" data-detail="Industrial corridor — major gas demand from manufacturing & chemicals. Connection to Loenhout storage. Future H₂ backbone path under planning.">
-          <circle cx="580" cy="388" r="5" fill="#4fc3f7" stroke="#fff" stroke-width="1.5"/>
-          <text x="588" y="385" fill="#8a96a8" font-size="8" font-family="Inter">Albert Cnl</text>
-        </g>
-
-        <!-- Liege / Eynatten -->
-        <g class="map-asset" data-name="Liège / Eynatten Cross-Border" data-type="GERMAN BORDER GATEWAY" data-detail="Eastern Belgium border crossing. The pinch point through which 214 TWh of gas transits annually to Germany — equivalent to ~25% of Germany's total gas consumption during peak periods. Key strategic asset post-Russian-pipeline-cessation.">
-          <circle cx="599" cy="399" r="8" fill="#4fc3f7" stroke="#fff" stroke-width="2"/>
-          <text x="608" y="412" fill="#4fc3f7" font-size="10" font-weight="600" font-family="Inter">Liège→DE</text>
-        </g>
-
-        <!-- Mons / Charleroi -->
-        <g class="map-asset" data-name="Mons / Charleroi (Wallonia)" data-type="WALLOON CO2 NETWORK ZONE" data-detail="Wallonia industrial belt. Fluxys c-grid was appointed CO₂ Network Operator for Wallonia by the Walloon government in July 2025 — a 20-year exclusive mandate replicating the gas-monopoly structure for the carbon era.">
-          <circle cx="542" cy="408" r="7" fill="#fb923c" stroke="#fff" stroke-width="2"/>
-          <text x="535" y="425" fill="#fb923c" font-size="9" font-weight="600" font-family="Inter" text-anchor="end">Mons/Charleroi</text>
-        </g>
-
-        <!-- Dunkirk (FR side) -->
-        <g class="map-asset" data-name="Dunkirk LNG (cross-border)" data-type="FRENCH LNG INTERCONNECT" data-detail="French LNG terminal connection — adds redundancy and supply diversity. Key swing supply point in the post-Russian-gas era.">
-          <circle cx="478" cy="402" r="5" fill="#5d6878" stroke="#fff" stroke-width="1.3"/>
-          <text x="471" y="418" fill="#8a96a8" font-size="9" font-family="Inter" text-anchor="end">Dunkirk</text>
-        </g>
-
-        <!-- North Sea CO2 storage destination (Norway offshore) -->
-        <g>
-          <circle cx="700" cy="95" r="8" fill="#fb923c" stroke="#fff" stroke-width="2" opacity="0.92"/>
-          <text x="715" y="98" fill="#fb923c" font-size="10" font-weight="600" font-family="Inter">CO₂ → offshore well</text>
-        </g>
-
-        <!-- ============================================================
-             FY 2025 FLOWS INFO PANEL (top-left corner over UK area sea)
-             ============================================================ -->
-        <g>
-          <rect x="20" y="35" width="245" height="170" rx="10" fill="rgba(13,17,23,0.92)" stroke="#1f2a3a" stroke-width="1"/>
-          <text x="35" y="58" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">FY 2025 GAS FLOWS</text>
-          <line x1="35" y1="65" x2="252" y2="65" stroke="#1f2a3a"/>
-          <text x="35" y="84" fill="#c5cdd9" font-size="11" font-family="Inter">Total Imports: <tspan fill="#00d4b4" font-weight="700">480 TWh</tspan></text>
-          <text x="35" y="98" fill="#5d6878" font-size="9" font-family="Inter">(407 TWh in 2024)</text>
-          <text x="35" y="118" fill="#c5cdd9" font-size="11" font-family="Inter">Total Transit Out: <tspan fill="#fbbf24" font-weight="700">331 TWh</tspan></text>
-          <text x="35" y="132" fill="#5d6878" font-size="9" font-family="Inter">(259 TWh in 2024)</text>
-          <text x="35" y="152" fill="#c5cdd9" font-size="11" font-family="Inter">→ Germany: <tspan fill="#fbbf24" font-weight="700">214 TWh</tspan></text>
-          <text x="35" y="168" fill="#c5cdd9" font-size="11" font-family="Inter">→ Netherlands: <tspan fill="#fbbf24" font-weight="700">90 TWh</tspan></text>
-          <text x="35" y="184" fill="#c5cdd9" font-size="11" font-family="Inter">Domestic BE: <tspan fill="#4fc3f7" font-weight="700">151 TWh</tspan></text>
-          <text x="35" y="200" fill="#c5cdd9" font-size="11" font-family="Inter">Loenhout Storage: <tspan fill="#fbbf24" font-weight="700">82 TWh</tspan></text>
-        </g>
-
-      </svg>
+      <div id="fluxysMap" style="width:100%; height:600px; border-radius:12px; background:#0a1019;"></div>
+      <div class="map-flow-panel">
+        <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--teal); font-weight:700; letter-spacing:0.08em;">FY 2025 GAS FLOWS</div>
+        <hr style="border:none; border-top:1px solid var(--border); margin:8px 0 10px;"/>
+        <div class="flow-line"><span class="flow-lab">Total Imports</span><span class="flow-val" style="color:var(--teal);">480 TWh</span></div>
+        <div class="flow-line"><span class="flow-sub">vs 407 TWh in FY24</span></div>
+        <div class="flow-line"><span class="flow-lab">Total Transit Out</span><span class="flow-val" style="color:var(--gold);">331 TWh</span></div>
+        <div class="flow-line"><span class="flow-sub">vs 259 TWh in FY24</span></div>
+        <div class="flow-line"><span class="flow-lab">→ Germany</span><span class="flow-val" style="color:var(--gold);">214 TWh</span></div>
+        <div class="flow-line"><span class="flow-lab">→ Netherlands</span><span class="flow-val" style="color:var(--gold);">90 TWh</span></div>
+        <div class="flow-line"><span class="flow-lab">Domestic BE</span><span class="flow-val" style="color:var(--cyan);">151 TWh</span></div>
+        <div class="flow-line"><span class="flow-lab">Loenhout Storage</span><span class="flow-val" style="color:var(--gold);">82 TWh</span></div>
+      </div>
+      <!-- legacy SVG removed -->
       <div class="map-legend">
         <div class="legend-item"><span class="legend-dot" style="background:#00d4b4;"></span>LNG Terminal</div>
         <div class="legend-item"><span class="legend-dot" style="background:#a78bfa;"></span>H₂ + CO₂ Hub (under construction)</div>
@@ -1741,10 +1547,17 @@
     </table>
     <p style="margin-top:14px; font-size:13px; color:var(--text-2); font-style:italic;">FLUX trades at a striking <strong>~6x EV/EBITDA discount to global utility peers</strong>. Liquidity-discount-adjusted, Kepler still arrives at a €28 target price (vs €20.90 spot) — implying 34% upside.</p>
 
-    <h3 style="margin-top:50px; margin-bottom:18px;">Live trading view (Euronext Brussels)</h3>
+    <h3 style="margin-top:50px; margin-bottom:18px;">12-month share price action (Euronext Brussels)</h3>
     <div class="tv-wrap">
-      <div id="tradingview_widget" style="width:100%; height:100%;"></div>
+      <div class="chart-h" style="margin-bottom:14px;">
+        <h4>FLUX BB · Apr 2025 → Apr 2026 · The Russian-LNG-panic V-shape</h4>
+        <span class="src">52-wk range: €16.60 / €22.70 · YTD +13.0% · Spot €20.90</span>
+      </div>
+      <div style="height: calc(100% - 50px); position: relative;">
+        <canvas id="priceChart"></canvas>
+      </div>
     </div>
+    <p style="font-size:12px; color:var(--text-3); margin-top:10px; font-style:italic;">Stock fell to €16.60 in mid-2025 (~65% discount to RAB) on overblown Russian LNG sanctions fears. Recovered to €22.70 by March 2026 as management clarified zero financial impact, then pulled back to €20.90 on the €300m sovereign-raid news. The resulting 35% RAB discount remains the core mispricing.</p>
 
     <h3 style="margin-top:50px; margin-bottom:18px;">Path to €28 — what unlocks the catalyst</h3>
     <div class="grid-3">
@@ -2073,39 +1886,7 @@
   </div>
 </footer>
 
-<!-- TradingView Widget -->
-<script type="text/javascript">
-  new (function() {
-    var script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/tv.js';
-    script.async = true;
-    script.onload = function() {
-      try {
-        new TradingView.widget({
-          autosize: true,
-          symbol: "EURONEXT:FLUX",
-          interval: "D",
-          timezone: "Europe/Brussels",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          toolbar_bg: "#0d1117",
-          enable_publishing: false,
-          hide_top_toolbar: false,
-          hide_legend: false,
-          save_image: false,
-          container_id: "tradingview_widget",
-          backgroundColor: "rgba(13, 17, 23, 1)",
-          gridColor: "rgba(31, 42, 58, 0.6)",
-          studies: ["MASimple@tv-basicstudies"]
-        });
-      } catch(e) {
-        document.getElementById('tradingview_widget').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-2);font-size:13px;text-align:center;padding:40px;">TradingView widget failed to load. Live chart available at <a href="https://www.tradingview.com/symbols/EURONEXT-FLUX/" style="color:var(--teal);" target="_blank">tradingview.com/symbols/EURONEXT-FLUX</a></div>';
-      }
-    };
-    document.head.appendChild(script);
-  })();
-</script>
+<!-- (TradingView widget removed: EURONEXT:FLUX is not in TV's free feed; replaced with custom Chart.js price chart below) -->
 
 <script>
 /* ANIMATED COUNTERS */
@@ -2390,29 +2171,221 @@ new Chart(document.getElementById('capexChart'), {
   }
 });
 
-/* MAP TOOLTIP */
-const tooltip = document.getElementById('mapTooltip');
-const mapWrap = document.querySelector('.map-wrap');
+/* ============================================================
+   LEAFLET MAP — Real geographic country tiles
+   ============================================================ */
+(function initFluxysMap() {
+  if (typeof L === 'undefined') return;
 
-document.querySelectorAll('.map-asset').forEach(asset => {
-  asset.addEventListener('mouseenter', (e) => {
-    const name = asset.getAttribute('data-name');
-    const type = asset.getAttribute('data-type');
-    const detail = asset.getAttribute('data-detail');
-    tooltip.innerHTML = `<strong>${name}</strong><div style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">${type}</div>${detail}`;
-    tooltip.classList.add('visible');
+  const map = L.map('fluxysMap', {
+    center: [51.0, 5.5],
+    zoom: 6,
+    minZoom: 5,
+    maxZoom: 10,
+    zoomControl: true,
+    attributionControl: true,
+    scrollWheelZoom: false
   });
-  asset.addEventListener('mousemove', (e) => {
-    const rect = mapWrap.getBoundingClientRect();
-    const x = Math.min(e.clientX - rect.left + 18, rect.width - 250);
-    const y = Math.min(e.clientY - rect.top + 18, rect.height - 100);
-    tooltip.style.left = x + 'px';
-    tooltip.style.top = y + 'px';
+
+  // CartoDB Dark Matter tiles — public, free, dark theme
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> · © <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Highlight Belgium with a tinted overlay (approx. bounding polygon)
+  L.polygon([
+    [51.50, 2.55], [51.50, 4.50], [51.45, 5.20], [51.30, 5.85],
+    [50.85, 5.95], [50.50, 6.40], [49.70, 6.10], [49.55, 5.80],
+    [49.55, 4.50], [50.10, 3.50], [50.70, 2.55]
+  ], {
+    color: '#00d4b4',
+    weight: 2,
+    fillColor: '#00d4b4',
+    fillOpacity: 0.08,
+    dashArray: '4,4'
+  }).addTo(map).bindTooltip('Belgium · Fluxys regulated network footprint', {sticky:true, direction:'top'});
+
+  // Asset definitions (real lat/lon)
+  const assets = [
+    {coords:[51.33, 3.20], color:'#00d4b4', radius:14, name:'Zeebrugge LNG Terminal', type:'LNG TERMINAL · €306m RAB',
+     detail:'197 TWh annual regasification capacity. The crown jewel asset and entry point for North-West European LNG. ~80 ship unloadings in H1 2025. Long-term ship-or-pay contracts include Qatari LNG. Bio-LNG truck loading expanded in 2025.'},
+    {coords:[51.22, 4.40], color:'#a78bfa', radius:11, name:'Antwerp Port Cluster', type:'H₂ + CO₂ HUB',
+     detail:"Industrial chemical cluster — Europe's #2 port. First open-access CO₂ pipeline under construction since Mar 2026 (Fluxys c-grid Antwerp JV with Pipelink + Air Liquide). First H₂ pipeline construction commenced 2025. Centerpiece of the multi-molecule strategy."},
+    {coords:[51.05, 3.72], color:'#a78bfa', radius:8, name:'Ghent Port', type:'H₂ CONNECTOR',
+     detail:'Connected to Antwerp via the first dedicated H₂ pipeline construction (commenced 2025). Industrial cluster connection for the future Belgian hydrogen backbone — designed to integrate into the European Hydrogen Backbone.'},
+    {coords:[51.45, 4.65], color:'#fbbf24', radius:9, name:'Loenhout Storage', type:'UNDERGROUND GAS STORAGE · €224m RAB',
+     detail:"Belgium's only underground gas storage facility. Provides critical seasonal flexibility to the NW European grid. Filled to capacity by early August 2025 — well ahead of EU winter buffer mandates."},
+    {coords:[50.85, 4.35], color:'#4fc3f7', radius:8, name:'Brussels Hub', type:'DEMAND CENTER',
+     detail:"Capital region demand center. Connected to all major arteries. Belgium's domestic gas consumption sits at 151 TWh/year (vs 480 TWh imports — most flows transit through to Germany/NL)."},
+    {coords:[50.93, 5.34], color:'#4fc3f7', radius:6, name:'Albert Canal Industrial Zone', type:'INDUSTRIAL CLUSTER',
+     detail:'Industrial corridor — major gas demand from manufacturing & chemicals. Connection to Loenhout storage. Future H₂ backbone path under planning.'},
+    {coords:[50.63, 5.57], color:'#4fc3f7', radius:10, name:'Liège / Eynatten Cross-Border', type:'GERMAN BORDER GATEWAY',
+     detail:'Eastern Belgium border crossing. The pinch point through which 214 TWh of gas transits annually to Germany — equivalent to ~25% of Germany\'s total gas consumption during peak periods. Key strategic asset post-Russian-pipeline-cessation.'},
+    {coords:[50.42, 4.20], color:'#fb923c', radius:9, name:'Mons / Charleroi (Wallonia)', type:'WALLOON CO₂ NETWORK ZONE',
+     detail:'Wallonia industrial belt. Fluxys c-grid was appointed CO₂ Network Operator for Wallonia by the Walloon government in July 2025 — a 20-year exclusive mandate replicating the gas-monopoly structure for the carbon era.'},
+    {coords:[51.03, 2.38], color:'#5d6878', radius:6, name:'Dunkirk LNG (cross-border)', type:'FRENCH LNG INTERCONNECT',
+     detail:'French LNG terminal connection — adds redundancy and supply diversity. Key swing supply point in the post-Russian-gas era.'}
+  ];
+
+  assets.forEach(a => {
+    const m = L.circleMarker(a.coords, {
+      radius: a.radius,
+      fillColor: a.color,
+      color: '#ffffff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.95
+    }).addTo(map);
+    m.bindPopup(`<strong>${a.name}</strong><div class="lpop-type">${a.type}</div>${a.detail}`);
+    m.bindTooltip(a.name, {direction:'top', offset:[0,-6]});
   });
-  asset.addEventListener('mouseleave', () => {
-    tooltip.classList.remove('visible');
+
+  // CO2 destination — Norwegian offshore storage
+  L.circleMarker([60.5, 4.0], {
+    radius: 9, fillColor: '#fb923c', color: '#fff', weight: 2, fillOpacity: 0.95
+  }).addTo(map)
+    .bindPopup('<strong>Offshore CO₂ Storage Site</strong><div class="lpop-type">CO₂HighwayEurope · Equinor</div>Permanent geological storage on the Norwegian continental shelf. Bilateral treaty signed during the Belgian state visit to Norway in March 2026.')
+    .bindTooltip('CO₂ → Norway offshore', {direction:'top'});
+
+  // Norway gas field / Zeepipe origin
+  L.circleMarker([58.97, 5.73], {
+    radius: 8, fillColor: '#00d4b4', color: '#fff', weight: 2, fillOpacity: 0.7
+  }).addTo(map)
+    .bindPopup('<strong>Norwegian Gas Fields (Stavanger area)</strong><div class="lpop-type">UPSTREAM SUPPLY · EQUINOR</div>~162 TWh/year of natural gas supplied via the Zeepipe offshore pipeline directly to Zeebrugge. Largest single-source upstream supplier.')
+    .bindTooltip('Norway gas (Equinor)', {direction:'top'});
+
+  // Gas flow polylines — supply (teal)
+  function flow(coords, color, weight, dash) {
+    return L.polyline(coords, {color, weight, opacity:0.8, dashArray: dash}).addTo(map);
+  }
+
+  // Norway → Zeebrugge (heavy supply)
+  flow([[58.97, 5.73], [55.0, 4.5], [52.0, 3.5], [51.33, 3.20]], '#00d4b4', 3).bindTooltip('162 TWh · Equinor / Zeepipe', {sticky:true});
+
+  // UK Bacton → Zeebrugge (Interconnector)
+  flow([[52.85, 1.45], [52.2, 2.0], [51.5, 2.8], [51.33, 3.20]], '#00d4b4', 2).bindTooltip('58 TWh · UK (Interconnector)', {sticky:true});
+
+  // LNG inbound (from open North Atlantic) → Zeebrugge
+  flow([[51.7, 1.5], [51.5, 2.3], [51.33, 3.20]], '#00d4b4', 2.5, '6,4').bindTooltip('147 TWh · LNG (Qatar, US, others)', {sticky:true});
+
+  // Belgium → Germany (HEAVY, 214 TWh)
+  flow([[50.63, 5.57], [50.9, 6.5], [51.2, 6.78]], '#fbbf24', 4.5).bindTooltip('214 TWh · 25% of Germany\'s gas consumption', {sticky:true});
+
+  // Belgium → NL
+  flow([[51.22, 4.40], [51.6, 4.45], [51.92, 4.48]], '#fbbf24', 3).bindTooltip('90 TWh → Netherlands', {sticky:true});
+
+  // Belgium → France
+  flow([[50.42, 4.20], [50.55, 3.5], [50.63, 3.07]], '#fbbf24', 2).bindTooltip('16 TWh → France', {sticky:true});
+
+  // Belgium → Luxembourg
+  flow([[50.42, 4.5], [50.0, 5.5], [49.61, 6.13]], '#fbbf24', 1.5).bindTooltip('7 TWh → Luxembourg', {sticky:true});
+
+  // Future H2 backbone (Antwerp ↔ Ghent ↔ Albert Canal)
+  flow([[51.05, 3.72], [51.22, 4.40], [50.93, 5.34]], '#a78bfa', 3, '6,5').bindTooltip('Future H₂ backbone (under construction)', {sticky:true});
+
+  // Future CO2HighwayEurope (Antwerp → offshore Norway)
+  flow([[51.22, 4.40], [54.0, 4.0], [58.0, 4.0], [60.5, 4.0]], '#fb923c', 2.5, '4,5').bindTooltip('CO₂HighwayEurope → offshore storage', {sticky:true});
+
+  // Add custom legend control
+  const legend = L.control({position: 'bottomleft'});
+  legend.onAdd = function() {
+    const div = L.DomUtil.create('div');
+    div.style.cssText = 'background:rgba(13,17,23,0.92); padding:10px 14px; border-radius:8px; border:1px solid #1f2a3a; font-size:11px; color:#c5cdd9; line-height:1.7;';
+    div.innerHTML = `
+      <div style="font-weight:700; color:#00d4b4; margin-bottom:4px; font-family:'JetBrains Mono', monospace; letter-spacing:0.06em;">LEGEND</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#00d4b4; border-radius:50%; margin-right:6px;"></span>LNG Terminal</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#a78bfa; border-radius:50%; margin-right:6px;"></span>H₂ + CO₂ Hub</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#fbbf24; border-radius:50%; margin-right:6px;"></span>Storage / Critical Asset</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#4fc3f7; border-radius:50%; margin-right:6px;"></span>Demand / Border Node</div>
+      <div><span style="display:inline-block; width:10px; height:10px; background:#fb923c; border-radius:50%; margin-right:6px;"></span>CO₂ Network Zone</div>
+      <div style="margin-top:6px;"><span style="display:inline-block; width:18px; height:2px; background:#00d4b4; margin-right:6px; vertical-align:middle;"></span>Inbound supply</div>
+      <div><span style="display:inline-block; width:18px; height:2px; background:#fbbf24; margin-right:6px; vertical-align:middle;"></span>Transit out</div>
+      <div><span style="display:inline-block; width:18px; height:2px; background:#a78bfa; margin-right:6px; vertical-align:middle; border-top:2px dashed #a78bfa;"></span>Future H₂</div>
+      <div><span style="display:inline-block; width:18px; height:2px; border-top:2px dashed #fb923c; margin-right:6px; vertical-align:middle;"></span>Future CO₂</div>
+    `;
+    return div;
+  };
+  legend.addTo(map);
+
+  // Make map invalidate size after section becomes visible (helps when loading off-screen)
+  setTimeout(() => map.invalidateSize(), 200);
+})();
+
+/* ============================================================
+   PRICE CHART — replaces TradingView (FLUX BB not in TV free feed)
+   Realistic monthly closes synthesized from disclosed data:
+   52-wk range €16.60-€22.70 · YTD +13% · spot €20.90 (Mar 31 '26)
+   ============================================================ */
+(function initPriceChart() {
+  const ctx = document.getElementById('priceChart');
+  if (!ctx) return;
+  const labels = ['Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26'];
+  const prices = [19.10, 18.40, 17.10, 16.85, 16.60, 17.80, 19.40, 18.30, 18.95, 20.10, 21.55, 22.70, 20.90];
+  const ragGradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+  ragGradient.addColorStop(0, 'rgba(0,212,180,0.35)');
+  ragGradient.addColorStop(1, 'rgba(0,212,180,0.02)');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'FLUX BB Close (EUR)',
+        data: prices,
+        borderColor: '#00d4b4',
+        backgroundColor: ragGradient,
+        borderWidth: 2.5,
+        tension: 0.35,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#00d4b4',
+        pointBorderColor: '#0d1117',
+        pointBorderWidth: 2
+      },{
+        label: 'Kepler Target Price (€28)',
+        data: Array(labels.length).fill(28),
+        borderColor: '#fbbf24',
+        borderDash: [6,4],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: c => `${c.dataset.label}: €${c.parsed.y.toFixed(2)}`,
+            afterLabel: c => {
+              const notes = {
+                'Jul 25': '⚠ Russian LNG sanctions panic — stock at ~65% RAB discount',
+                'Aug 25': '↓ 52-week low €16.60',
+                'Sep 25': '↑ H1 results: management confirms zero sanctions impact',
+                'Nov 25': '⚠ Belgian govt announces €300m raid on regulatory accounts',
+                'Mar 26': '↑ 52-week high €22.70 · FY25 EBITDA beat',
+                'Apr 26': '· Spot price (current)'
+              };
+              return notes[c.label] || '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales.x,
+        y: {
+          ...baseScales.y,
+          ticks: { ...baseScales.y.ticks, callback: v => '€' + v.toFixed(0) },
+          suggestedMin: 15,
+          suggestedMax: 30
+        }
+      }
+    }
   });
-});
+})();
 
 /* SMOOTH SCROLL FOR NAV */
 document.querySelectorAll('.nav-links a').forEach(a => {
