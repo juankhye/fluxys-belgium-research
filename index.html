@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fluxys Belgium (FLUX BB) — Hedge Fund Research Dashboard</title>
+<meta name="description" content="Deep-dive interactive research dashboard on Fluxys Belgium (FLUX BB): regulated gas TSO transitioning into Europe's multi-molecule (H2/CO2) energy hub." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-0: #07090d;
+    --bg-1: #0d1117;
+    --bg-2: #131a24;
+    --bg-3: #1a2332;
+    --border: #1f2a3a;
+    --border-light: #2a3a52;
+    --text-0: #f4f6fb;
+    --text-1: #c5cdd9;
+    --text-2: #8a96a8;
+    --text-3: #5d6878;
+    --teal: #00d4b4;
+    --teal-dim: #008f7a;
+    --cyan: #4fc3f7;
+    --hydrogen: #a78bfa;
+    --co2: #fb923c;
+    --gas: #fbbf24;
+    --bull: #10b981;
+    --bear: #ef4444;
+    --gold: #fbbf24;
+    --grid: rgba(255,255,255,0.04);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-0);
+    color: var(--text-1);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,212,180,0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 30%, rgba(79,195,247,0.04), transparent),
+      radial-gradient(ellipse 50% 30% at 20% 80%, rgba(167,139,250,0.04), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg-0); }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--teal-dim); }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--text-0);
+    letter-spacing: -0.02em;
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--cyan) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bg-0);
+    font-weight: 900;
+    font-size: 14px;
+  }
+  .ticker-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--teal);
+    background: rgba(0,212,180,0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,212,180,0.25);
+  }
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover {
+    color: var(--teal);
+    background: rgba(0,212,180,0.07);
+  }
+  .nav-cta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--bull);
+    font-weight: 600;
+  }
+
+  /* CONTAINER */
+  .container { max-width: 1440px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+  section { padding: 80px 0 40px; position: relative; }
+
+  /* HEADERS */
+  .section-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin-bottom: 14px;
+    padding: 4px 10px;
+    background: rgba(0,212,180,0.07);
+    border-left: 2px solid var(--teal);
+    border-radius: 0 4px 4px 0;
+  }
+  h1 { font-size: clamp(2.4rem, 5vw, 4.2rem); font-weight: 800; line-height: 1.05; color: var(--text-0); letter-spacing: -0.04em; }
+  h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); font-weight: 700; color: var(--text-0); letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 12px; }
+  h3 { font-size: 1.3rem; font-weight: 700; color: var(--text-0); letter-spacing: -0.015em; }
+  h4 { font-size: 1rem; font-weight: 600; color: var(--text-0); }
+  .lead {
+    font-size: 18px;
+    color: var(--text-2);
+    max-width: 800px;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .hero-headline {
+    background: linear-gradient(135deg, #fff 0%, var(--teal) 60%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    margin-top: 18px;
+    font-size: 19px;
+    color: var(--text-2);
+    line-height: 1.55;
+    max-width: 580px;
+  }
+  .hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .tag {
+    padding: 6px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 12px;
+    color: var(--text-1);
+    font-weight: 500;
+  }
+  .tag.bull { color: var(--bull); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+  .tag.warn { color: var(--gold); border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08); }
+  .price-card {
+    background: linear-gradient(165deg, var(--bg-2) 0%, var(--bg-1) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .price-row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .price-row:last-child { border-bottom: none; }
+  .price-row .lab { color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .price-row .val { color: var(--text-0); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .val.up { color: var(--bull); }
+  .val.down { color: var(--bear); }
+
+  /* KPI STRIP */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    margin-top: 50px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--border);
+  }
+  .kpi {
+    background: var(--bg-1);
+    padding: 22px 18px;
+    transition: background 0.25s;
+  }
+  .kpi:hover { background: var(--bg-2); }
+  .kpi-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-0);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .kpi-num .unit { font-size: 16px; color: var(--text-2); margin-left: 4px; font-weight: 500; }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+  .kpi-sub { color: var(--text-2); font-size: 12px; margin-top: 4px; }
+
+  /* CARDS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px;
+    transition: border 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: var(--border-light); }
+  .card-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .card-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--teal);
+  }
+  .card-dot.hyd { background: var(--hydrogen); }
+  .card-dot.co2 { background: var(--co2); }
+  .card-dot.gas { background: var(--gas); }
+  .card-dot.bull { background: var(--bull); }
+  .card-dot.bear { background: var(--bear); }
+  .card p { font-size: 14px; color: var(--text-2); }
+  .card p + p { margin-top: 10px; }
+  .card strong { color: var(--text-0); font-weight: 600; }
+
+  /* FIRST PRINCIPLES */
+  .fp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+  .fp-step {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 18px;
+    margin-bottom: 24px;
+    align-items: start;
+  }
+  .fp-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(0,212,180,0.12);
+    border: 1px solid var(--teal-dim);
+    color: var(--teal);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .fp-step h4 { color: var(--text-0); margin-bottom: 6px; font-size: 16px; }
+  .fp-step p { color: var(--text-2); font-size: 14px; line-height: 1.6; }
+  .analogy {
+    background: linear-gradient(135deg, rgba(0,212,180,0.08), rgba(79,195,247,0.04));
+    border-left: 3px solid var(--teal);
+    border-radius: 0 12px 12px 0;
+    padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .analogy-label {
+    color: var(--teal);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .analogy p { font-size: 14px; color: var(--text-1); }
+
+  /* MAP */
+  .map-wrap {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+  }
+  .map-svg {
+    width: 100%;
+    height: auto;
+    max-height: 700px;
+  }
+  .map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .map-tooltip {
+    position: absolute;
+    background: var(--bg-3);
+    border: 1px solid var(--teal);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-0);
+    pointer-events: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+    max-width: 220px;
+    line-height: 1.5;
+  }
+  .map-tooltip.visible { opacity: 1; }
+  .map-tooltip strong { color: var(--teal); display: block; font-size: 13px; margin-bottom: 4px; }
+  .map-asset { cursor: pointer; transition: filter 0.2s; }
+  .map-asset:hover { filter: brightness(1.4) drop-shadow(0 0 12px rgba(0,212,180,0.6)); }
+
+  /* BUSINESS MODEL FLOW */
+  .flow-diagram {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    overflow-x: auto;
+  }
+  .flow-row {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .flow-node {
+    background: var(--bg-2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+  }
+  .flow-node.input { border-color: var(--gas); }
+  .flow-node.process { border-color: var(--teal); background: rgba(0,212,180,0.06); }
+  .flow-node.output { border-color: var(--cyan); }
+  .flow-node h4 { font-size: 14px; margin-bottom: 6px; }
+  .flow-node p { font-size: 11px; color: var(--text-2); }
+  .flow-arrow {
+    text-align: center;
+    color: var(--teal);
+    font-size: 24px;
+    font-weight: 300;
+  }
+
+  /* RAB ANALOGY */
+  .rab-explainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: stretch;
+  }
+  .rab-formula {
+    background: linear-gradient(165deg, var(--bg-2) 0%, var(--bg-1) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 30px;
+  }
+  .formula-eq {
+    background: var(--bg-0);
+    border: 1px dashed var(--border-light);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--teal);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .formula-eq .var { color: var(--cyan); font-weight: 700; }
+  .formula-eq .op { color: var(--text-2); margin: 0 6px; }
+
+  /* SEGMENTS */
+  .seg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .seg-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .seg-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .seg-card.transmission::before { background: linear-gradient(90deg, var(--teal), var(--cyan)); }
+  .seg-card.terminalling::before { background: linear-gradient(90deg, var(--cyan), var(--hydrogen)); }
+  .seg-card.storage::before { background: linear-gradient(90deg, var(--gas), var(--co2)); }
+  .seg-rab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-0);
+    margin: 14px 0 4px;
+  }
+  .seg-rab .unit { font-size: 14px; color: var(--text-3); }
+  .seg-bar {
+    background: var(--bg-3);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .seg-fill { height: 100%; border-radius: 3px; }
+
+  /* CHARTS */
+  .chart-wrap {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    height: 360px;
+    position: relative;
+  }
+  .chart-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .chart-h h4 { font-size: 14px; font-weight: 600; }
+  .chart-h .src { font-size: 10px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+  .chart-canvas-box {
+    height: calc(100% - 36px);
+    position: relative;
+  }
+
+  /* H2/CO2 STRATEGY */
+  .strategy-pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pillar {
+    background: var(--bg-1);
+    padding: 30px;
+    transition: background 0.2s;
+  }
+  .pillar:hover { background: var(--bg-2); }
+  .pillar-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 0.9;
+    background: linear-gradient(135deg, var(--teal), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .pillar-num.h { background: linear-gradient(135deg, var(--hydrogen), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .pillar-num.c { background: linear-gradient(135deg, var(--co2), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .pillar-tag { color: var(--text-3); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+
+  /* BULL BEAR */
+  .bb-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .bb-side {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .bb-side.bull { border-top: 3px solid var(--bull); }
+  .bb-side.bear { border-top: 3px solid var(--bear); }
+  .bb-side h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bb-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .bull .bb-icon { background: rgba(16,185,129,0.15); color: var(--bull); }
+  .bear .bb-icon { background: rgba(239,68,68,0.15); color: var(--bear); }
+  .bb-tagline { font-size: 13px; color: var(--text-2); margin-bottom: 18px; }
+  .bb-list { list-style: none; }
+  .bb-item {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  .bb-item:first-child { border-top: 0; }
+  .bb-item-h {
+    font-weight: 600;
+    color: var(--text-0);
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  .bb-item-p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+
+  /* RISK CARDS */
+  .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .risk-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    border-left: 3px solid var(--bear);
+  }
+  .risk-card.medium { border-left-color: var(--gold); }
+  .risk-card.low { border-left-color: var(--cyan); }
+  .risk-sev {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--bear);
+    background: rgba(239,68,68,0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .risk-card.medium .risk-sev { color: var(--gold); background: rgba(251,191,36,0.1); }
+  .risk-card.low .risk-sev { color: var(--cyan); background: rgba(79,195,247,0.1); }
+
+  /* SUPPLY CHAIN */
+  .sc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .sc-side {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 26px;
+  }
+  .sc-row {
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 80px;
+    gap: 14px;
+  }
+  .sc-row:first-of-type { border-top: 0; }
+  .sc-name { font-weight: 600; color: var(--text-0); font-size: 14px; }
+  .sc-detail { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.5; }
+  .sc-loc {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  /* QUALITY SCORE */
+  .quality-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .score-bar {
+    height: 8px;
+    background: var(--bg-3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--cyan));
+    border-radius: 4px;
+  }
+  .score-row { padding: 14px 0; border-top: 1px solid var(--border); }
+  .score-row:first-child { border-top: 0; }
+  .score-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .score-num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--teal);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .composite {
+    background: linear-gradient(165deg, var(--bg-2) 0%, var(--bg-1) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+  }
+  .composite-num {
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--teal), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  /* TIMELINE */
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--teal), var(--border));
+  }
+  .tl-item {
+    position: relative;
+    padding-bottom: 22px;
+  }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -27px;
+    top: 5px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 3px solid var(--bg-0);
+    box-shadow: 0 0 0 1px var(--teal);
+  }
+  .tl-date {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--teal);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+  .tl-title { font-weight: 600; color: var(--text-0); margin: 4px 0 4px; font-size: 15px; }
+  .tl-desc { color: var(--text-2); font-size: 13px; }
+
+  /* VALUATION */
+  .val-callout {
+    background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(0,212,180,0.04));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .val-callout-num {
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--bull);
+    line-height: 1;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--bg-2);
+    color: var(--text-3);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  td { color: var(--text-1); }
+  td.num { font-family: 'JetBrains Mono', monospace; text-align: right; color: var(--text-0); }
+  tr:hover td { background: rgba(0,212,180,0.03); }
+
+  /* ITALY/SOUTHERN PEER COMPARISON */
+  .peer-bars {
+    display: grid;
+    gap: 12px;
+  }
+  .peer-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 60px;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+  }
+  .peer-name { color: var(--text-1); font-weight: 500; }
+  .peer-name.us { color: var(--teal); font-weight: 700; }
+  .peer-bar-bg {
+    height: 24px;
+    background: var(--bg-3);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .peer-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal-dim), var(--teal));
+    border-radius: 4px;
+  }
+  .peer-bar-fill.peer-other { background: linear-gradient(90deg, #475569, #64748b); }
+  .peer-val {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-0);
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* TRADINGVIEW */
+  .tv-wrap {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    height: 540px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 50px 0 40px;
+    margin-top: 80px;
+    text-align: center;
+    color: var(--text-3);
+    font-size: 12px;
+  }
+  footer a { color: var(--teal); text-decoration: none; }
+  .disclaimer {
+    max-width: 800px;
+    margin: 16px auto 0;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-3);
+  }
+
+  /* FADE IN */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .hero-grid, .grid-2, .bb-grid, .quality-grid, .rab-explainer, .fp-grid, .sc-grid { grid-template-columns: 1fr; }
+    .grid-3, .seg-grid, .risk-grid, .strategy-pillars { grid-template-columns: 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+    .kpi-strip { grid-template-columns: 1fr 1fr 1fr; }
+    .nav-links { display: none; }
+  }
+  @media (max-width: 700px) {
+    .container { padding: 0 16px; }
+    .nav-inner { padding: 12px 16px; }
+    section { padding: 60px 0 30px; }
+    .grid-3, .grid-4, .seg-grid, .risk-grid, .strategy-pillars, .kpi-strip { grid-template-columns: 1fr; }
+    .flow-row { grid-template-columns: 1fr; gap: 8px; }
+    .flow-arrow { transform: rotate(90deg); }
+    h1 { font-size: 2.4rem; }
+    h2 { font-size: 1.7rem; }
+    .composite-num { font-size: 60px; }
+    .pillar-num { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-mark">F</div>
+      <span>FLUXYS BELGIUM</span>
+      <span class="ticker-badge">FLUX BB</span>
+    </div>
+    <div class="nav-links">
+      <a href="#hero">Overview</a>
+      <a href="#first-principles">Primer</a>
+      <a href="#business">Model</a>
+      <a href="#footprint">Footprint</a>
+      <a href="#moat">Moat</a>
+      <a href="#transition">H2 / CO2</a>
+      <a href="#financials">Financials</a>
+      <a href="#valuation">Valuation</a>
+      <a href="#bullbear">Bull / Bear</a>
+      <a href="#risks">Risks</a>
+      <a href="#thesis">Thesis</a>
+    </div>
+    <div class="nav-cta">+34.0% upside</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="section-tag">Hedge Fund Research Brief · Apr 2026</div>
+        <h1 class="hero-headline">Belgium's gas highway,<br/>quietly rewiring itself for hydrogen and CO<sub>2</sub>.</h1>
+        <p class="hero-sub">Fluxys Belgium is a 4,000-km regulated gas pipeline monopoly that earns a guaranteed return on a €2.7bn asset base. Today it ships <strong>25% of Germany's gas consumption</strong> through Zeebrugge. Tomorrow it aims to move <strong>30 TWh of hydrogen and 30 Mt of CO<sub>2</sub></strong> by the 2030s — at a 35% discount to the assets it already owns.</p>
+        <div class="hero-tags">
+          <span class="tag">Regulated Natural Monopoly</span>
+          <span class="tag">Cost-Plus RAB Model</span>
+          <span class="tag bull">~7% Dividend Yield</span>
+          <span class="tag bull">35% Discount to RAB</span>
+          <span class="tag warn">10% Free Float (Illiquid)</span>
+          <span class="tag warn">EU Sanctions Optics</span>
+        </div>
+      </div>
+      <div class="price-card">
+        <div class="card-h">
+          <span class="card-dot"></span>
+          <h4>Snapshot · Mar 31, 2026</h4>
+        </div>
+        <div class="price-row"><span class="lab">Ticker (Bloomberg)</span><span class="val">FLUX BB</span></div>
+        <div class="price-row"><span class="lab">Exchange</span><span class="val">Euronext Brussels</span></div>
+        <div class="price-row"><span class="lab">Last Price</span><span class="val">€20.90</span></div>
+        <div class="price-row"><span class="lab">52-Wk Range</span><span class="val">€16.60 / €22.70</span></div>
+        <div class="price-row"><span class="lab">YTD Performance</span><span class="val up">+13.0%</span></div>
+        <div class="price-row"><span class="lab">Market Cap</span><span class="val">€1.5bn</span></div>
+        <div class="price-row"><span class="lab">Free Float</span><span class="val down">10%</span></div>
+        <div class="price-row"><span class="lab">Avg Daily Vol</span><span class="val">€0.1m</span></div>
+        <div class="price-row"><span class="lab">Kepler Target Price</span><span class="val up">€28.00</span></div>
+        <div class="price-row"><span class="lab">Implied Upside</span><span class="val up">+34.0%</span></div>
+        <div class="price-row"><span class="lab">Dividend / Share</span><span class="val">€1.40</span></div>
+        <div class="price-row"><span class="lab">Dividend Yield</span><span class="val up">~7.0%</span></div>
+      </div>
+    </div>
+
+    <!-- KPI STRIP -->
+    <div class="kpi-strip">
+      <div class="kpi">
+        <div class="kpi-num" data-target="4000" data-suffix=" km">0</div>
+        <div class="kpi-label">High-Pressure Pipeline Network</div>
+        <div class="kpi-sub">Spanning all of Belgium</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num" data-target="197" data-suffix=" TWh">0</div>
+        <div class="kpi-label">Zeebrugge LNG Capacity</div>
+        <div class="kpi-sub">Annual regasification</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num" data-target="2674" data-prefix="€" data-suffix="m">0</div>
+        <div class="kpi-label">Regulated Asset Base 2025</div>
+        <div class="kpi-sub">Cost-plus return locked in</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num" data-target="8.3" data-prefix="€" data-suffix="bn" data-decimals="1">0</div>
+        <div class="kpi-label">2025-2034 Capex Plan</div>
+        <div class="kpi-sub">90%+ to low-carbon infra</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-num" data-target="320" data-prefix="€" data-suffix="m">0</div>
+        <div class="kpi-label">FY25 EBITDA</div>
+        <div class="kpi-sub">+5.9% YoY · Beat Kepler est.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FIRST PRINCIPLES -->
+<section id="first-principles">
+  <div class="container">
+    <div class="section-tag">Section 01 · First Principles</div>
+    <h2>What you need to understand before anything else</h2>
+    <p class="lead">Fluxys is in a niche so specific that most investors have never priced it. Here's the mental model.</p>
+
+    <div class="fp-grid">
+      <div>
+        <div class="fp-step">
+          <div class="fp-num">1</div>
+          <div>
+            <h4>Gas isn't sold by Fluxys. <em>Capacity</em> is.</h4>
+            <p>Fluxys does not buy or sell natural gas. It owns the pipes. Customers (energy traders, utilities, industrials) pay a tariff to <strong>book capacity</strong> on those pipes, much like booking seats on a train. Whether they actually flow gas or not, they pay. This is called <strong>"ship-or-pay"</strong>.</p>
+          </div>
+        </div>
+
+        <div class="fp-step">
+          <div class="fp-num">2</div>
+          <div>
+            <h4>It's a Transmission System Operator (TSO)</h4>
+            <p>Belgium's gas system has three layers. <strong>Producers</strong> in Norway, Qatar, the US, etc. inject gas. <strong>Fluxys</strong> moves it across the country at high pressure (the "highway"). <strong>Distribution operators</strong> (Fluvius, Ores) deliver the gas at low pressure to your home (the "local roads"). Fluxys is the regulated middleman with no competition.</p>
+          </div>
+        </div>
+
+        <div class="fp-step">
+          <div class="fp-num">3</div>
+          <div>
+            <h4>Belgium is wired into Europe — that's the alpha</h4>
+            <p>Belgium itself only consumes 151 TWh of gas per year. But Fluxys's network <strong>transits 331 TWh through Belgium to neighbors</strong> — 214 TWh to Germany, 90 TWh to the Netherlands, 16 TWh to France. Since Russia stopped piping gas eastward, west-to-east transit volumes have surged.</p>
+          </div>
+        </div>
+
+        <div class="fp-step">
+          <div class="fp-num">4</div>
+          <div>
+            <h4>Returns are capped — but also guaranteed</h4>
+            <p>Belgian regulator <strong>CREG</strong> sets a 4-year tariff methodology. Tariffs are designed to fully cover all reasonable costs <em>plus</em> a fair return calculated as <strong>WACC + 100bp on the Regulated Asset Base (RAB)</strong>. If volumes spike, the surplus is returned to customers via a regulatory adjustment account. Result: <strong>profitability is decoupled from volumes</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="analogy">
+          <div class="analogy-label">⚡ Mental Model #1 — Toll Road</div>
+          <p>Think of Fluxys as <strong>Belgium's gas toll road operator</strong>. Cars come and go (gas volumes shift). The toll operator doesn't care — it gets paid for available <strong>lane capacity</strong> regardless of traffic. The state says: "You can charge enough tolls to cover your costs <em>plus</em> a fair return on the road you built." That fair return is what guarantees the dividend.</p>
+        </div>
+
+        <div class="analogy">
+          <div class="analogy-label">⚡ Mental Model #2 — Bond With Optionality</div>
+          <p>The base business is <strong>essentially a fixed-income instrument</strong> — €1.40 per share dividend every year, mathematically dictated by the regulator. That's the bond. The <strong>optionality</strong> is the energy transition: Fluxys has been handed exclusive 20-year monopolies on Belgium's hydrogen and CO<sub>2</sub> networks. If those scale, the RAB explodes.</p>
+        </div>
+
+        <div class="analogy">
+          <div class="analogy-label">⚡ Mental Model #3 — Why "Multi-Molecule" Matters</div>
+          <p>Fluxys's new pipelines are designed to carry <strong>any of three molecules</strong>: natural gas (CH<sub>4</sub>), hydrogen (H<sub>2</sub>), or carbon dioxide (CO<sub>2</sub>). One pipe, three potential revenue streams. As Europe decarbonizes, the gas itself changes — but the toll operator collects either way.</p>
+        </div>
+
+        <div class="analogy">
+          <div class="analogy-label">⚡ Mental Model #4 — The 2025 Bottom-Line "Drag" Is Actually a Feature</div>
+          <p>Net income fell to €74.9m in 2025 (vs €82.1m). Why? Fluxys is <strong>spending cash building H<sub>2</sub> and CO<sub>2</sub> pipes <em>before</em> the regulator sets tariffs for them</strong>. Today these are unremunerated "latent assets". Once the framework is finalized, they convert to RAB → triggering a positive earnings catch-up. Bears see a miss; bulls see a forced buying opportunity.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BUSINESS MODEL -->
+<section id="business">
+  <div class="container">
+    <div class="section-tag">Section 02 · Business Model</div>
+    <h2>The three regulated segments</h2>
+    <p class="lead">Each segment owns a piece of physical infrastructure. Each generates a regulated return. Together they form the moat.</p>
+
+    <div class="seg-grid">
+      <div class="seg-card transmission">
+        <div class="card-h"><span class="card-dot"></span><h3>Transmission</h3></div>
+        <p style="font-size:13px; color:var(--text-2); min-height:60px;">High-pressure pipelines that move gas across Belgium and into neighboring countries — the bulk of the business.</p>
+        <div class="seg-rab">€2,143.8<span class="unit">m RAB</span></div>
+        <div style="font-size:11px; color:var(--text-3);">80% of total Regulated Asset Base</div>
+        <div class="seg-bar"><div class="seg-fill" style="width:80%; background:linear-gradient(90deg, var(--teal), var(--cyan));"></div></div>
+        <p style="font-size:12px; color:var(--text-2); margin-top:14px;"><strong>Key metric:</strong> 4,000 km of pipelines. New pipelines designed as <strong>multi-molecule</strong> — capable of carrying CH<sub>4</sub>, H<sub>2</sub>, or CO<sub>2</sub>.</p>
+      </div>
+
+      <div class="seg-card terminalling">
+        <div class="card-h"><span class="card-dot hyd"></span><h3>LNG Terminalling</h3></div>
+        <p style="font-size:13px; color:var(--text-2); min-height:60px;">The Zeebrugge LNG terminal — strategic entry point for liquefied gas arriving by ship from Qatar, the US, Norway.</p>
+        <div class="seg-rab">€306.0<span class="unit">m RAB</span></div>
+        <div style="font-size:11px; color:var(--text-3);">11.4% of RAB · 197 TWh annual capacity</div>
+        <div class="seg-bar"><div class="seg-fill" style="width:11.4%; background:linear-gradient(90deg, var(--cyan), var(--hydrogen));"></div></div>
+        <p style="font-size:12px; color:var(--text-2); margin-top:14px;"><strong>Key metric:</strong> ~80 ship unloadings in H1 2025. Bio-LNG liquefaction added 4 truck loading docks early 2025. Open-Rack Vaporizers (ORVs) cut emissions vs gas-fired regas.</p>
+      </div>
+
+      <div class="seg-card storage">
+        <div class="card-h"><span class="card-dot gas"></span><h3>Storage</h3></div>
+        <p style="font-size:13px; color:var(--text-2); min-height:60px;">Loenhout underground gas storage — provides seasonal flexibility to the entire NW European grid.</p>
+        <div class="seg-rab">€224.5<span class="unit">m RAB</span></div>
+        <div style="font-size:11px; color:var(--text-3);">8.4% of RAB</div>
+        <div class="seg-bar"><div class="seg-fill" style="width:8.4%; background:linear-gradient(90deg, var(--gas), var(--co2));"></div></div>
+        <p style="font-size:12px; color:var(--text-2); margin-top:14px;"><strong>Key metric:</strong> Filled to capacity by early August 2025 — well ahead of EU winter buffer mandates. Operational excellence captures regulatory efficiency incentives.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">How a euro flows through the business</h3>
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div class="flow-node input">
+          <h4>1. Customer Books Capacity</h4>
+          <p>Trader / utility signs ship-or-pay contract for X TWh/year for 5-20 years</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node process">
+          <h4>2. Tariff Applied</h4>
+          <p>CREG-set tariff designed to fully cover OPEX + fair return on RAB</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node output">
+          <h4>3. Cash Inflow Locked</h4>
+          <p>Revenue earned even if zero gas physically flows. Volume risk eliminated.</p>
+        </div>
+      </div>
+      <div class="flow-row" style="margin-top:18px;">
+        <div class="flow-node input">
+          <h4>4. Surplus → Reg. Account</h4>
+          <p>If actual revenues exceed budget (e.g. transit boom), excess parked in adjustment account</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node process">
+          <h4>5. Returned to Market</h4>
+          <p>Surplus used to lower future tariffs for customers — keeps regulated returns at "fair" level</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node output">
+          <h4>6. Net Profit Stays Stable</h4>
+          <p>~€80m net profit, €1.40 dividend — bond-like predictability</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Where revenue actually comes from (FY25 €650m)</h3>
+    <div class="grid-2">
+      <div class="chart-wrap">
+        <div class="chart-h"><h4>Revenue by Segment</h4><span class="src">Source: 2025 Integrated Annual Report</span></div>
+        <div class="chart-canvas-box"><canvas id="revenueSegmentChart"></canvas></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-h"><h4>RAB Composition (€2.67bn)</h4><span class="src">Source: 2025 IAR · Extended RAB €3.15bn</span></div>
+        <div class="chart-canvas-box"><canvas id="rabChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTPRINT MAP -->
+<section id="footprint">
+  <div class="container">
+    <div class="section-tag">Section 03 · Physical Footprint</div>
+    <h2>Where Fluxys actually operates</h2>
+    <p class="lead">Click any node to see what's there, what it's worth, and why it matters. The whole thesis lives on this map.</p>
+
+    <div class="map-wrap">
+      <div id="mapTooltip" class="map-tooltip"></div>
+      <svg class="map-svg" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0a1929" stop-opacity="0.8"/>
+            <stop offset="1" stop-color="#0a1929" stop-opacity="0.3"/>
+          </linearGradient>
+          <linearGradient id="belgiumGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1a2332"/>
+            <stop offset="1" stop-color="#13202e"/>
+          </linearGradient>
+          <linearGradient id="flowGrad" x1="0" x2="1">
+            <stop offset="0" stop-color="#00d4b4"/>
+            <stop offset="1" stop-color="#4fc3f7"/>
+          </linearGradient>
+          <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#00d4b4"/>
+          </marker>
+          <marker id="arrowOut" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#fbbf24"/>
+          </marker>
+          <pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6">
+            <path d="M0,6 L6,0" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          </pattern>
+        </defs>
+
+        <!-- Sea / Background -->
+        <rect width="900" height="700" fill="#07090d"/>
+        <rect x="0" y="0" width="900" height="220" fill="url(#seaGrad)"/>
+
+        <!-- North Sea label -->
+        <text x="120" y="60" fill="#3d5775" font-size="14" font-style="italic" font-family="Inter">North Sea</text>
+        <text x="650" y="80" fill="#3d5775" font-size="11" font-style="italic" font-family="Inter">offshore CO₂ storage (NO/UK)</text>
+
+        <!-- Country shapes (stylized) -->
+        <!-- UK -->
+        <path d="M 80 130 L 180 110 L 170 220 L 80 240 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="115" y="180" fill="#5d6878" font-size="13" font-weight="600" font-family="Inter">UK</text>
+
+        <!-- Norway (top corner) -->
+        <path d="M 350 30 L 480 30 L 480 95 L 380 110 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="395" y="65" fill="#5d6878" font-size="13" font-weight="600" font-family="Inter">NORWAY</text>
+
+        <!-- Netherlands -->
+        <path d="M 380 200 L 540 195 L 530 280 L 400 285 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="430" y="245" fill="#5d6878" font-size="13" font-weight="600" font-family="Inter">NL</text>
+
+        <!-- Germany -->
+        <path d="M 540 195 L 800 200 L 820 480 L 600 470 L 575 350 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="680" y="335" fill="#5d6878" font-size="14" font-weight="600" font-family="Inter">GERMANY</text>
+
+        <!-- France -->
+        <path d="M 200 480 L 580 460 L 600 470 L 600 660 L 200 660 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="380" y="600" fill="#5d6878" font-size="14" font-weight="600" font-family="Inter">FRANCE</text>
+
+        <!-- Luxembourg -->
+        <path d="M 540 410 L 575 410 L 580 460 L 540 460 Z" fill="#13202e" stroke="#1f2a3a" stroke-width="1"/>
+        <text x="540" y="445" fill="#5d6878" font-size="9" font-weight="600" font-family="Inter">LUX</text>
+
+        <!-- Belgium (highlighted) -->
+        <path d="M 220 285 L 540 280 L 540 410 L 540 460 L 200 480 L 220 380 Z" fill="url(#belgiumGrad)" stroke="#00d4b4" stroke-width="2.5" opacity="0.95"/>
+        <text x="320" y="370" fill="#00d4b4" font-size="22" font-weight="800" font-family="Inter" letter-spacing="2">BELGIUM</text>
+        <text x="320" y="395" fill="#8a96a8" font-size="11" font-family="Inter" letter-spacing="1">FLUXYS NETWORK · 4,000 km</text>
+
+        <!-- Pipeline lines (Fluxys network) -->
+        <g stroke="#00d4b4" stroke-width="1.5" fill="none" opacity="0.6">
+          <!-- Zeebrugge - Antwerp -->
+          <path d="M 245 285 Q 290 295 320 305"/>
+          <!-- Antwerp - Brussels -->
+          <path d="M 320 305 L 350 360"/>
+          <!-- Brussels - Liege -->
+          <path d="M 350 360 L 470 370"/>
+          <!-- Brussels - Mons -->
+          <path d="M 350 360 L 280 420"/>
+          <!-- Antwerp - Loenhout (storage) -->
+          <path d="M 320 305 L 350 285"/>
+          <!-- Ghent connector -->
+          <path d="M 280 305 L 320 305"/>
+          <!-- Albert Canal -->
+          <path d="M 320 305 L 410 330"/>
+          <!-- Charleroi -->
+          <path d="M 280 420 L 320 430"/>
+        </g>
+
+        <!-- Cross-border flows (curved arrows) -->
+        <!-- LNG inbound -->
+        <path d="M 120 240 Q 180 270 245 285" fill="none" stroke="#00d4b4" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowTeal)" opacity="0.8"/>
+        <text x="125" y="265" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">147 TWh LNG</text>
+
+        <!-- Norway inbound -->
+        <path d="M 410 110 Q 350 200 245 285" fill="none" stroke="#00d4b4" stroke-width="2.5" marker-end="url(#arrowTeal)" opacity="0.8"/>
+        <text x="270" y="195" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">162 TWh (Zeepipe)</text>
+
+        <!-- UK pipeline -->
+        <path d="M 175 220 Q 210 250 245 285" fill="none" stroke="#00d4b4" stroke-width="1.5" marker-end="url(#arrowTeal)" opacity="0.7"/>
+        <text x="160" y="290" fill="#00d4b4" font-size="10" font-weight="700" font-family="JetBrains Mono">58 TWh UK</text>
+
+        <!-- Outbound to Germany -->
+        <path d="M 470 370 Q 540 360 600 350" fill="none" stroke="#fbbf24" stroke-width="3.5" marker-end="url(#arrowOut)" opacity="0.85"/>
+        <text x="510" y="345" fill="#fbbf24" font-size="13" font-weight="700" font-family="JetBrains Mono">214 TWh →</text>
+        <text x="525" y="378" fill="#fbbf24" font-size="9" font-family="JetBrains Mono">25% of DE consumption</text>
+
+        <!-- Outbound to NL -->
+        <path d="M 380 285 Q 420 250 460 240" fill="none" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrowOut)" opacity="0.8"/>
+        <text x="425" y="225" fill="#fbbf24" font-size="11" font-weight="700" font-family="JetBrains Mono">90 TWh ↑</text>
+
+        <!-- Outbound to France -->
+        <path d="M 280 460 Q 320 510 380 540" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowOut)" opacity="0.7"/>
+        <text x="240" y="500" fill="#fbbf24" font-size="10" font-weight="700" font-family="JetBrains Mono">16 TWh ↓</text>
+
+        <!-- Lux -->
+        <path d="M 510 410 L 555 425" fill="none" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arrowOut)" opacity="0.6"/>
+        <text x="555" y="438" fill="#fbbf24" font-size="9" font-family="JetBrains Mono">7 TWh</text>
+
+        <!-- Future H2 Backbone (dashed purple) -->
+        <g stroke="#a78bfa" stroke-width="2" fill="none" stroke-dasharray="4,4" opacity="0.7">
+          <path d="M 280 305 L 320 305"/>
+          <path d="M 320 305 Q 360 330 410 330"/>
+        </g>
+
+        <!-- CO2 future (dashed orange) -->
+        <g stroke="#fb923c" stroke-width="2" fill="none" stroke-dasharray="2,4" opacity="0.7">
+          <path d="M 245 285 Q 350 230 410 110"/>
+        </g>
+        <text x="350" y="155" fill="#fb923c" font-size="10" font-weight="700" font-family="JetBrains Mono">CO₂HighwayEurope</text>
+        <text x="350" y="170" fill="#fb923c" font-size="9" font-family="JetBrains Mono">→ Equinor offshore storage</text>
+
+        <!-- Assets / Nodes -->
+        <!-- Zeebrugge LNG Terminal -->
+        <g class="map-asset" data-name="Zeebrugge LNG Terminal" data-type="LNG TERMINAL" data-detail="197 TWh annual regasification capacity. The crown jewel asset and entry point for North-West European LNG. Saw ~80 ship unloadings in H1 2025. Long-term ship-or-pay contracts include Qatari LNG. Bio-LNG truck loading expanded in 2025.">
+          <circle cx="245" cy="285" r="14" fill="#00d4b4" stroke="#fff" stroke-width="2"/>
+          <circle cx="245" cy="285" r="22" fill="none" stroke="#00d4b4" opacity="0.3"/>
+          <text x="265" y="280" fill="#00d4b4" font-size="11" font-weight="700" font-family="Inter">ZEEBRUGGE</text>
+          <text x="265" y="294" fill="#8a96a8" font-size="9" font-family="JetBrains Mono">LNG · 197 TWh</text>
+        </g>
+
+        <!-- Antwerp -->
+        <g class="map-asset" data-name="Antwerp Port Cluster" data-type="H2 + CO2 HUB" data-detail="Industrial chemical cluster — Europe's #2 port. First open-access CO₂ pipeline under construction since Mar 2026 (Fluxys c-grid Antwerp JV with Pipelink + Air Liquide). First H₂ pipeline construction commenced 2025. Centerpiece of the multi-molecule strategy.">
+          <circle cx="320" cy="305" r="11" fill="#a78bfa" stroke="#fff" stroke-width="2"/>
+          <text x="335" y="300" fill="#a78bfa" font-size="11" font-weight="700" font-family="Inter">ANTWERP</text>
+          <text x="335" y="313" fill="#8a96a8" font-size="9" font-family="JetBrains Mono">H₂ + CO₂ Hub</text>
+        </g>
+
+        <!-- Ghent -->
+        <g class="map-asset" data-name="Ghent Port" data-type="H2 CONNECTOR" data-detail="Connected to Antwerp via the first dedicated H₂ pipeline construction (commenced 2025). Industrial cluster connection for the future Belgian hydrogen backbone — designed to integrate into the European Hydrogen Backbone.">
+          <circle cx="280" cy="305" r="9" fill="#a78bfa" stroke="#fff" stroke-width="2"/>
+          <text x="252" y="324" fill="#a78bfa" font-size="10" font-weight="600" font-family="Inter">Ghent</text>
+        </g>
+
+        <!-- Loenhout -->
+        <g class="map-asset" data-name="Loenhout Storage" data-type="UNDERGROUND GAS STORAGE" data-detail="Belgium's only underground gas storage facility. Provides critical seasonal flexibility to the NW European grid. Filled to capacity by early August 2025 — well ahead of EU winter buffer mandates. €224.5m RAB.">
+          <circle cx="350" cy="285" r="9" fill="#fbbf24" stroke="#fff" stroke-width="2"/>
+          <text x="362" y="282" fill="#fbbf24" font-size="10" font-weight="600" font-family="Inter">Loenhout</text>
+          <text x="362" y="294" fill="#8a96a8" font-size="9" font-family="JetBrains Mono">Storage</text>
+        </g>
+
+        <!-- Brussels -->
+        <g class="map-asset" data-name="Brussels Hub" data-type="DEMAND CENTER" data-detail="Capital region demand center. Connected to all major arteries. Belgium's domestic gas consumption sits at 151 TWh/year (vs 480 TWh imports — most flows transit through to Germany/NL).">
+          <circle cx="350" cy="360" r="9" fill="#4fc3f7" stroke="#fff" stroke-width="2"/>
+          <text x="362" y="365" fill="#4fc3f7" font-size="10" font-weight="600" font-family="Inter">Brussels</text>
+        </g>
+
+        <!-- Liege -->
+        <g class="map-asset" data-name="Liège / Eynatten Cross-Border" data-type="GERMAN BORDER GATEWAY" data-detail="Eastern Belgium border crossing. The pinch point through which 214 TWh of gas transits annually to Germany — equivalent to ~25% of Germany's total gas consumption during peak periods. Key strategic asset post-Russian-pipeline-cessation.">
+          <circle cx="470" cy="370" r="9" fill="#4fc3f7" stroke="#fff" stroke-width="2"/>
+          <text x="430" y="392" fill="#4fc3f7" font-size="10" font-weight="600" font-family="Inter">Liège→DE</text>
+        </g>
+
+        <!-- Mons / Charleroi -->
+        <g class="map-asset" data-name="Mons / Charleroi" data-type="WALLOON CO2 NETWORK ZONE" data-detail="Wallonia industrial belt. Fluxys c-grid was appointed CO₂ Network Operator for Wallonia by the Walloon government in July 2025 — a 20-year exclusive mandate replicating the gas-monopoly structure for the carbon era.">
+          <circle cx="280" cy="420" r="8" fill="#fb923c" stroke="#fff" stroke-width="2"/>
+          <text x="225" y="435" fill="#fb923c" font-size="10" font-weight="600" font-family="Inter">Mons/Charleroi</text>
+        </g>
+
+        <!-- Albert Canal / Limburg -->
+        <g class="map-asset" data-name="Albert Canal Industrial Zone" data-type="INDUSTRIAL CLUSTER" data-detail="Industrial corridor — major gas demand from manufacturing & chemicals. Connection to Loenhout storage. Future H₂ backbone path under planning.">
+          <circle cx="410" cy="330" r="8" fill="#4fc3f7" stroke="#fff" stroke-width="2"/>
+          <text x="425" y="335" fill="#4fc3f7" font-size="10" font-weight="600" font-family="Inter">Albert Canal</text>
+        </g>
+
+        <!-- Dunkirk (FR import) -->
+        <g class="map-asset" data-name="Dunkirk LNG (cross-border)" data-type="FRENCH LNG INTERCONNECT" data-detail="French LNG terminal connection — adds redundancy and supply diversity. Key swing supply point in the post-Russian-gas era.">
+          <circle cx="190" cy="330" r="7" fill="#5d6878" stroke="#fff" stroke-width="1.5"/>
+          <text x="155" y="350" fill="#8a96a8" font-size="9" font-family="Inter">Dunkirk</text>
+        </g>
+
+        <!-- North Sea CO2 storage destination -->
+        <g>
+          <circle cx="430" cy="80" r="8" fill="#fb923c" stroke="#fff" stroke-width="2" opacity="0.85"/>
+          <text x="445" y="85" fill="#fb923c" font-size="10" font-weight="600" font-family="Inter">CO₂ → NO offshore</text>
+        </g>
+
+        <!-- Title Banner -->
+        <g>
+          <rect x="600" y="540" width="280" height="135" rx="10" fill="#0d1117" stroke="#1f2a3a" stroke-width="1"/>
+          <text x="615" y="560" fill="#00d4b4" font-size="11" font-weight="700" font-family="JetBrains Mono">FY 2025 FLOWS</text>
+          <text x="615" y="582" fill="#c5cdd9" font-size="11" font-family="Inter">Total Imports: <tspan fill="#00d4b4" font-weight="700">480 TWh</tspan> (407 in '24)</text>
+          <text x="615" y="600" fill="#c5cdd9" font-size="11" font-family="Inter">Total Transit Out: <tspan fill="#fbbf24" font-weight="700">331 TWh</tspan></text>
+          <text x="615" y="618" fill="#c5cdd9" font-size="11" font-family="Inter">→ Germany: <tspan fill="#fbbf24" font-weight="700">214 TWh</tspan></text>
+          <text x="615" y="636" fill="#c5cdd9" font-size="11" font-family="Inter">→ Netherlands: <tspan fill="#fbbf24" font-weight="700">90 TWh</tspan></text>
+          <text x="615" y="654" fill="#c5cdd9" font-size="11" font-family="Inter">Domestic BE: <tspan fill="#4fc3f7" font-weight="700">151 TWh</tspan></text>
+        </g>
+
+      </svg>
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#00d4b4;"></span>LNG Terminal</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#a78bfa;"></span>H₂ + CO₂ Hub (under construction)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fbbf24;"></span>Storage / Critical Asset</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#4fc3f7;"></span>Demand / Border Node</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#fb923c;"></span>CO₂ Network Zone</div>
+        <div class="legend-item"><span style="display:inline-block; width:20px; height:2px; background:#00d4b4;"></span>Inbound gas flow</div>
+        <div class="legend-item"><span style="display:inline-block; width:20px; height:2px; background:#fbbf24;"></span>Outbound transit</div>
+        <div class="legend-item"><span style="display:inline-block; width:20px; height:2px; background:#a78bfa; opacity:0.7;"></span>Future H₂ backbone</div>
+      </div>
+    </div>
+
+    <!-- INTERNATIONAL FOOTPRINT -->
+    <h3 style="margin-top:50px; margin-bottom:18px;">Beyond Belgium — international holdings (the OGE story)</h3>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-h"><span class="card-dot"></span><h4>Open Grid Europe (OGE) · 24.1%</h4></div>
+        <p>Germany's <strong>largest gas TSO</strong> — 12,000 km of pipelines. Acquired Mar 2023. In Apr 2026 Fluxys partnered with <strong>Brookfield + GIP</strong> to bid for the remaining 75.89%. If executed, this transforms Fluxys from a Belgian utility into a continental gas+H₂+CO₂ corridor operator.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot hyd"></span><h4>Trans Adriatic Pipeline (TAP) · 20%</h4></div>
+        <p>Carries gas from the Caspian to Italy via Greece/Albania. A non-Russian Southern corridor — strategic geopolitical hedge. Stake increased to 20% in 2023.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot co2"></span><h4>BBL Pipeline · 25% (UK ↔ NL)</h4></div>
+        <p>Bidirectional pipeline. Stake increased in 2023. Plays into the West-East flow inversion — UK LNG and Norwegian gas now flow east to Germany via Belgium/NL.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot gas"></span><h4>GNL Quintero · 20% (Chile)</h4></div>
+        <p>20% minority stake (2022) in Chile's largest LNG terminal — one of the few cross-Atlantic infrastructure positions.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot"></span><h4>CO₂HighwayEurope · w/ Equinor</h4></div>
+        <p>Cross-border CO₂ corridor from Belgian/German industrial clusters to <strong>permanent offshore storage</strong> on the Norwegian continental shelf. Bilateral treaty signed during March 2026 Belgian state visit.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot hyd"></span><h4>Hynetwork JDA · w/ Gasunie (NL)</h4></div>
+        <p>Joint development agreement to <strong>interconnect Belgian + Dutch H₂ grids by 2030</strong>. Plus equity stake in John Cockerill Hydrogen (€116m round, electrolyzer manufacturer).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MOAT -->
+<section id="moat">
+  <div class="container">
+    <div class="section-tag">Section 04 · The Moat</div>
+    <h2>Why nobody can build a competing gas pipeline in Belgium</h2>
+    <p class="lead">There are three reasons the moat is essentially uncrossable. Plus a fourth that's actively being extended into hydrogen and CO<sub>2</sub>.</p>
+
+    <div class="grid-4">
+      <div class="card">
+        <div style="font-size:32px; margin-bottom:8px;">🏰</div>
+        <h4>1. Capital Intensity</h4>
+        <p style="margin-top:6px; font-size:13px;">Building a parallel 4,000 km high-pressure gas grid would cost <strong>billions</strong> with no certainty of demand. There is zero economic or social rationale to support a competitor.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px; margin-bottom:8px;">⚖️</div>
+        <h4>2. Legal Lockout</h4>
+        <p style="margin-top:6px; font-size:13px;">EU's <strong>Third Energy Package</strong> + Belgium's national Gas Act statutorily designate one TSO per region. The legal barrier is absolute.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px; margin-bottom:8px;">🔐</div>
+        <h4>3. The Golden Share</h4>
+        <p style="margin-top:6px; font-size:13px;">The Belgian State holds a <strong>special "golden share"</strong> giving it veto rights over any sale of strategic infrastructure deemed to compromise national energy security.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:32px; margin-bottom:8px;">🌐</div>
+        <h4>4. Multi-Decade Mandates</h4>
+        <p style="margin-top:6px; font-size:13px;">Government decrees grant Fluxys exclusive <strong>20-year</strong> operator mandates for the new H₂ backbone (Apr 2024) and regional CO₂ networks (2025-26) — locking competitors out before markets mature.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">RAB economics — how the regulator determines profit</h3>
+    <div class="rab-explainer">
+      <div class="rab-formula">
+        <h4>The Regulatory Formula</h4>
+        <p style="font-size:13px; color:var(--text-2); margin: 12px 0;">CREG's tariff methodology covers all reasonable operating costs <strong>plus</strong> a fair return on capital invested in the network. That return is anchored to the Belgian sovereign bond yield (the OLO).</p>
+
+        <div class="formula-eq">
+          <span class="var">Annual Profit</span> <span class="op">=</span> <span class="var">Average RAB</span> <span class="op">×</span> (<span class="var">WACC</span> <span class="op">+</span> 100bp)
+        </div>
+
+        <div class="formula-eq">
+          <span class="var">Tariff Revenue</span> <span class="op">=</span> <span class="var">OPEX</span> <span class="op">+</span> <span class="var">Depreciation</span> <span class="op">+</span> <span class="var">Profit</span>
+        </div>
+
+        <p style="font-size:12px; color:var(--text-3); margin-top:12px;">If the company spends less than the budgeted OPEX, it keeps a portion of the saving (efficiency incentive). If transit volumes generate surplus revenue, that surplus is parked in a <strong>regulatory adjustment account</strong> and returned to customers — but the underlying regulated profit stays untouched.</p>
+      </div>
+
+      <div class="rab-formula">
+        <h4>What this means in practice</h4>
+        <p style="margin: 14px 0; font-size:14px; color:var(--text-1);">Regulatory tariffs were <strong>cut 10% on transmission and 20% on storage</strong> for the 2024-27 period. Bottom-line impact?</p>
+        <div class="val-callout" style="margin: 14px 0; padding: 18px;">
+          <div class="val-callout-num" style="font-size:42px;">€0</div>
+          <div style="color:var(--text-1); font-size:13px; margin-top:6px;">Net income hit. The cost-plus model is structurally insulated from tariff changes — the regulator just recalibrates so OPEX + return are still covered.</div>
+        </div>
+        <p style="font-size:13px; color:var(--text-2); margin-top:14px;">EBITDA actually <strong>grew 5.9% to €320m in 2025</strong>, beating Kepler's €306m estimate, because the company captured efficiency incentives baked into the framework.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Quality scorecard (Kepler/AlphaSense framework)</h3>
+    <div class="quality-grid">
+      <div class="composite">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size:11px; color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase;">Composite Quality Score</div>
+        <div class="composite-num">12.5<span style="font-size:32px; color:var(--text-2);">/16</span></div>
+        <div style="color:var(--bull); font-weight:700; font-size:14px;">ABOVE AVERAGE · 78%</div>
+        <div style="margin-top:18px; padding-top:18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:12px; font-size:12px;">
+          <div><div style="color:var(--text-3);">Conviction</div><div style="color:var(--text-0); font-weight:600;">Medium</div></div>
+          <div><div style="color:var(--text-3);">Data Confidence</div><div style="color:var(--text-0); font-weight:600;">High</div></div>
+          <div><div style="color:var(--text-3);">Tier</div><div style="color:var(--teal); font-weight:600;">63-80%</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="score-row">
+          <div class="score-h"><span style="font-weight:600;">Infrastructure Moat</span><span class="score-num">3.5 / 4 · STRONG</span></div>
+          <div class="score-bar"><div class="score-fill" style="width:87.5%"></div></div>
+          <div style="font-size:12px; color:var(--text-3); margin-top:6px;">Natural monopoly · Exclusive H₂ + CO₂ mandates · Strategic for NW Europe</div>
+        </div>
+        <div class="score-row">
+          <div class="score-h"><span style="font-weight:600;">Recurring Revenue</span><span class="score-num">4.0 / 4 · STRONG</span></div>
+          <div class="score-bar"><div class="score-fill" style="width:100%"></div></div>
+          <div style="font-size:12px; color:var(--text-3); margin-top:6px;">4-yr CREG framework · Earnings decoupled from volumes · Surplus auto-returned</div>
+        </div>
+        <div class="score-row">
+          <div class="score-h"><span style="font-weight:600;">Operating Leverage</span><span class="score-num" style="color:var(--gold)">2.0 / 4 · MODERATE</span></div>
+          <div class="score-bar"><div class="score-fill" style="width:50%; background:linear-gradient(90deg, var(--gold), var(--co2));"></div></div>
+          <div style="font-size:12px; color:var(--text-3); margin-top:6px;">Returns capped by regulator · Some efficiency incentive upside · Limited at the structural level</div>
+        </div>
+        <div class="score-row">
+          <div class="score-h"><span style="font-weight:600;">Transformation / Catalyst</span><span class="score-num">3.0 / 4 · STRONG</span></div>
+          <div class="score-bar"><div class="score-fill" style="width:75%"></div></div>
+          <div style="font-size:12px; color:var(--text-3); margin-top:6px;">Multi-vector pivot · H₂/CO₂ pipeline construction underway · Cross-border partnerships active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ENERGY TRANSITION -->
+<section id="transition">
+  <div class="container">
+    <div class="section-tag">Section 05 · Energy Transition</div>
+    <h2>The "30 × 30 × 30s" ambition</h2>
+    <p class="lead">Management's strategic North Star — and the source of all of Fluxys's optionality. The bottom-line drag in 2025 is the price of admission to a much bigger RAB by the early 2030s.</p>
+
+    <div class="strategy-pillars">
+      <div class="pillar">
+        <div class="pillar-tag">Pillar 1 · Hydrogen</div>
+        <div class="pillar-num h">30 TWh</div>
+        <div style="color:var(--text-1); font-size:14px; margin-bottom: 10px;">annual H₂ transport capacity by the 2030s</div>
+        <p style="font-size:13px; color:var(--text-2);">First H₂ pipelines under construction in Antwerp/Ghent ports since 2025. Fluxys Hydrogen has been appointed Belgium's exclusive <strong>Hydrogen Network Operator</strong> for 20 years (Apr 2024).</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:8px;"><strong>⚠ Headwind:</strong> Belgian government cut a €250m H₂ funding budget — but Fluxys is building anyway.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-tag">Pillar 2 · CO₂</div>
+        <div class="pillar-num c">30 Mt</div>
+        <div style="color:var(--text-1); font-size:14px; margin-bottom: 10px;">CO₂ transport capacity by the 2030s</div>
+        <p style="font-size:13px; color:var(--text-2);">Fluxys c-grid is now CO₂ Network Operator for <strong>Wallonia + Flanders + Antwerp port</strong>. First open-access CO₂ pipeline in Antwerp under construction (Mar 2026 onwards). JV: 70% Fluxys / 20% Pipelink / 10% Air Liquide.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:8px;"><strong>✓ Strategic:</strong> Norway's Equinor partnership for offshore storage destination.</p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-tag">Pillar 3 · Capex</div>
+        <div class="pillar-num">€8.3bn</div>
+        <div style="color:var(--text-1); font-size:14px; margin-bottom: 10px;">2025-2034 indicative investment plan</div>
+        <p style="font-size:13px; color:var(--text-2);"><strong>Over 90% dedicated to low-carbon infrastructure.</strong> 2025 capex spiked to €261.8m (vs €92.1m in 2024) as the company front-loads strategic deployment ahead of regulatory finalization.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:8px;"><strong>≡ Funded by:</strong> €786m cash on balance sheet + 1.75-3.25% legacy bonds.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Capex acceleration — visualized</h3>
+    <div class="chart-wrap" style="height:420px;">
+      <div class="chart-h"><h4>Annual Capex (€m) — The Strategic Pivot</h4><span class="src">Source: FY25 IAR · Kepler estimates</span></div>
+      <div class="chart-canvas-box"><canvas id="capexChart"></canvas></div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Strategic timeline of the pivot (2024-2026)</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">Apr 2024</div>
+        <div class="tl-title">Fluxys Hydrogen appointed Belgian Hydrogen Network Operator</div>
+        <div class="tl-desc">20-year exclusive mandate. Open-access H₂ backbone interconnecting industrial clusters, ultimately into the European Hydrogen Backbone.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Early 2025</div>
+        <div class="tl-title">First H₂ + CO₂ pipeline construction commences</div>
+        <div class="tl-desc">Antwerp and Ghent port areas. Pipelines designed as multi-molecule (CH₄ / H₂ / CO₂).</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Jul 2025</div>
+        <div class="tl-title">Fluxys c-grid named CO₂ Network Operator for Wallonia</div>
+        <div class="tl-desc">Walloon government decree. First regional CO₂ mandate.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Sep 2025</div>
+        <div class="tl-title">Sacyr Proyecta wins FEED contract for Zeebrugge LNG expansion</div>
+        <div class="tl-desc">Front End Engineering Design — supports terminal modernization.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Oct 2025</div>
+        <div class="tl-title">Fluxys c-grid extends to Flanders region</div>
+        <div class="tl-desc">Flemish government appoints Fluxys as Carbon Network Operator for Flanders. Now covers both Belgian regions.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Nov 2025</div>
+        <div class="tl-title">⚠ Belgian government announces €300m withdrawal from regulatory accounts</div>
+        <div class="tl-desc">Sovereign intervention risk crystallizes. Fluxys formally contests the legality.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 2026</div>
+        <div class="tl-title">Belgian State Visit to Norway → CO₂HighwayEurope treaty</div>
+        <div class="tl-desc">Bilateral treaty establishes legal framework for cross-border CO₂ transport to Norwegian offshore storage.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 2026</div>
+        <div class="tl-title">Fluxys c-grid Antwerp appointed Local CO₂ Network Operator</div>
+        <div class="tl-desc">JV with Pipelink + Air Liquide. First open-access CO₂ pipeline construction begins in port of Antwerp.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Apr 2026</div>
+        <div class="tl-title">FY25 results · €262m capex (3x YoY)</div>
+        <div class="tl-desc">Net debt doubles to €326.9m. EBITDA beats at €320m. Net income misses at €74.9m due to unremunerated transition capex.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Apr 2026</div>
+        <div class="tl-title">Fluxys + Brookfield + GIP bid for remaining 75.89% of OGE</div>
+        <div class="tl-desc">Potentially transformative — would combine Belgian + German gas TSOs (~16,000km combined) under one platform.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINANCIALS -->
+<section id="financials">
+  <div class="container">
+    <div class="section-tag">Section 06 · Financials</div>
+    <h2>The numbers behind the bond-like dividend</h2>
+    <p class="lead">Top-line is steady. EBITDA is steady. Net debt and net income are doing something interesting in 2025 — that's the transition signal.</p>
+
+    <div class="grid-2">
+      <div class="chart-wrap" style="height:380px;">
+        <div class="chart-h"><h4>Revenue · EBITDA · EBIT (€m)</h4><span class="src">Source: Kepler key financials, Dec 2025</span></div>
+        <div class="chart-canvas-box"><canvas id="incomeChart"></canvas></div>
+      </div>
+      <div class="chart-wrap" style="height:380px;">
+        <div class="chart-h"><h4>Net Profit and Dividend per Share (€)</h4><span class="src">Source: Fluxys IAR · Kepler estimates</span></div>
+        <div class="chart-canvas-box"><canvas id="netDivChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:24px;">
+      <div class="chart-wrap" style="height:380px;">
+        <div class="chart-h"><h4>Net Financial Debt (€m) — Pivot Visible</h4><span class="src">Source: Fluxys consolidated balance sheet</span></div>
+        <div class="chart-canvas-box"><canvas id="debtChart"></canvas></div>
+      </div>
+      <div class="chart-wrap" style="height:380px;">
+        <div class="chart-h"><h4>RAB Growth Trajectory (€m)</h4><span class="src">Source: Fluxys IAR Reg. Asset Base table</span></div>
+        <div class="chart-canvas-box"><canvas id="rabGrowthChart"></canvas></div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">FY25 results vs Kepler estimates · the deviation table</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Metric (€m)</th>
+          <th>FY24 Actual</th>
+          <th>FY25 Kepler Est.</th>
+          <th>FY25 Actual</th>
+          <th>YoY</th>
+          <th>vs Est.</th>
+          <th>Read</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>EBITDA</td><td class="num">302.3</td><td class="num">306.3</td><td class="num">320.1</td><td class="num" style="color:var(--bull)">+5.9%</td><td class="num" style="color:var(--bull)">+4.5%</td><td>Operational beat — efficiency incentives working</td></tr>
+        <tr><td>EBIT</td><td class="num">133.9</td><td class="num">131.3</td><td class="num">133.9</td><td class="num">0.0%</td><td class="num" style="color:var(--bull)">+2.0%</td><td>Flat as transition D&A absorbs EBITDA gain</td></tr>
+        <tr><td>Net Income</td><td class="num">82.1</td><td class="num">82.7</td><td class="num">74.9</td><td class="num" style="color:var(--bear)">-8.7%</td><td class="num" style="color:var(--bear)">-9.4%</td><td>Miss = unremunerated H₂/CO₂ capex (timing)</td></tr>
+        <tr><td>Net Debt</td><td class="num">159.7</td><td class="num">122.2</td><td class="num">326.9</td><td class="num" style="color:var(--bear)">+104.7%</td><td class="num" style="color:var(--bear)">+167.5%</td><td>Capex spike funded with cash + debt</td></tr>
+        <tr><td>Dividend (€)</td><td class="num">1.40</td><td class="num">1.42</td><td class="num">1.40</td><td class="num">0.0%</td><td class="num" style="color:var(--gold)">-1.4%</td><td>Held flat — bond-like discipline maintained</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:14px; font-size:13px; color:var(--text-2); font-style:italic;">Kepler's interpretation: <strong>Adjusted for the unremunerated H₂/CO₂ effects, underlying net income would have been ~€85m</strong> — i.e. the core regulated business is still expanding. The reported "miss" is a strategic timing decision, not a degradation of earnings power.</p>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Capital structure · interest rate insulation</h3>
+    <div class="grid-2">
+      <table>
+        <thead>
+          <tr><th>Debt Instrument</th><th>Balance (€'000)</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Corporate Bonds</td><td class="num">697,208</td><td style="font-size:11px;">Coupons 1.75% / 3.25% · Mature 2027-34</td></tr>
+          <tr><td>Bank Borrowings (EIB)</td><td class="num">146,000</td><td style="font-size:11px;">25-year fixed-rate (2008 vintage)</td></tr>
+          <tr><td>Other (Fluxys SA loan)</td><td class="num">116,818</td><td style="font-size:11px;">3.20% from parent · Zeebrugge investment</td></tr>
+          <tr><td>Lease Liabilities</td><td class="num">26,310</td><td style="font-size:11px;">IFRS 16 obligations</td></tr>
+          <tr style="background:var(--bg-2);"><td><strong>Total Non-current Debt</strong></td><td class="num"><strong>986,336</strong></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="card" style="background:rgba(0,212,180,0.05); border-color:rgba(0,212,180,0.3);">
+        <h4 style="color:var(--teal); margin-bottom:10px;">⚡ Why interest rates don't really matter here</h4>
+        <p style="font-size:13px; line-height:1.6;">Two reinforcing protections:</p>
+        <p style="font-size:13px; margin-top:8px;"><strong>1. The vast majority of debt is already fixed-rate.</strong> Bonds at 1.75-3.25% locked in. EIB loan fixed since 2008.</p>
+        <p style="font-size:13px; margin-top:8px;"><strong>2. The cost-plus regulatory framework explicitly covers floating-rate financing costs.</strong> Even if Fluxys did issue variable debt, the regulator would pass that cost through to tariffs.</p>
+        <p style="font-size:13px; margin-top:8px; padding-top:10px; border-top:1px solid var(--border); color:var(--text-2);">Result: real interest rate exposure is <strong>virtually nil</strong> — though the regulatory adjustment lags can create temporary mismatches.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUATION -->
+<section id="valuation">
+  <div class="container">
+    <div class="section-tag">Section 07 · Valuation</div>
+    <h2>The 35% RAB discount — and why Kepler thinks it shouldn't exist</h2>
+    <p class="lead">For a fully regulated natural monopoly with a guaranteed return mechanism, the math the market is implying is incoherent. Here's the disconnect.</p>
+
+    <div class="val-callout">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:32px; align-items:center;">
+        <div>
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase;">Trades At</div>
+          <div class="val-callout-num">35%</div>
+          <div style="color:var(--text-1); margin-top:4px;">discount to Regulated Asset Base</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase;">Implied Market WACC</div>
+          <div class="val-callout-num" style="color:var(--gold)">~11%</div>
+          <div style="color:var(--text-1); margin-top:4px;">Kepler considers this "nonsensical" for a fully regulated utility</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase;">Kepler Used</div>
+          <div class="val-callout-num" style="color:var(--cyan)">5.5%</div>
+          <div style="color:var(--text-1); margin-top:4px;">WACC in their SOTP-DCF model · 1.0% LT inflation</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-bottom:18px;">Dividend yield vs Southern European TSO peers</h3>
+    <div class="chart-wrap" style="height:auto; padding:32px;">
+      <div class="peer-bars">
+        <div class="peer-row">
+          <div class="peer-name us">FLUX BB <span style="font-size:10px; color:var(--text-3);">(Fluxys)</span></div>
+          <div class="peer-bar-bg"><div class="peer-bar-fill" style="width: 100%;"></div></div>
+          <div class="peer-val" style="color:var(--teal);">~7.0%</div>
+        </div>
+        <div class="peer-row">
+          <div class="peer-name">SRG IM <span style="font-size:10px; color:var(--text-3);">(Snam)</span></div>
+          <div class="peer-bar-bg"><div class="peer-bar-fill peer-other" style="width: 80%;"></div></div>
+          <div class="peer-val">~5.6%</div>
+        </div>
+        <div class="peer-row">
+          <div class="peer-name">ENG SM <span style="font-size:10px; color:var(--text-3);">(Enagás)</span></div>
+          <div class="peer-bar-bg"><div class="peer-bar-fill peer-other" style="width: 86%;"></div></div>
+          <div class="peer-val">~6.0%</div>
+        </div>
+        <div class="peer-row">
+          <div class="peer-name">IG IM <span style="font-size:10px; color:var(--text-3);">(Italgas)</span></div>
+          <div class="peer-bar-bg"><div class="peer-bar-fill peer-other" style="width: 73%;"></div></div>
+          <div class="peer-val">~5.1%</div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--text-3); margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-style:italic;">Kepler's argument: Fluxys offers the highest yield <strong>and</strong> carries the lowest sovereign + execution risk — Belgium's regulatory framework is more visible, more stable, and more rules-based than Spain or Italy. Yet the market awards FLUX a deeper discount.</p>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Multiple comparison · gas utility peers (USD)</h3>
+    <table>
+      <thead>
+        <tr><th>Company</th><th>Sector</th><th>Market Cap</th><th>EV/EBITDA</th><th>P/E</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Fluxys Belgium</strong> (FLUX BB)</td><td>EU Gas TSO</td><td class="num">~$1.77bn</td><td class="num" style="color:var(--teal);">5.8x</td><td class="num" style="color:var(--teal);">17.8x</td></tr>
+        <tr><td>APA Group</td><td>Utilities</td><td class="num">$9.64bn</td><td class="num">12.25x</td><td class="num">48.68x</td></tr>
+        <tr><td>AltaGas Ltd</td><td>Utilities</td><td class="num">$11.45bn</td><td class="num">15.56x</td><td class="num">21.09x</td></tr>
+        <tr><td>Atmos Energy</td><td>Utilities</td><td class="num">$30.96bn</td><td class="num">14.88x</td><td class="num">23.10x</td></tr>
+        <tr><td>Chesapeake Utilities</td><td>Utilities</td><td class="num">$3.05bn</td><td class="num">12.01x</td><td class="num">19.76x</td></tr>
+        <tr><td>Capital Power</td><td>Utilities</td><td class="num">$7.73bn</td><td class="num">11.72x</td><td class="num">25.82x</td></tr>
+        <tr><td>CGN Power</td><td>Utilities</td><td class="num">$22.43bn</td><td class="num">12.34x</td><td class="num">25.16x</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:14px; font-size:13px; color:var(--text-2); font-style:italic;">FLUX trades at a striking <strong>~6x EV/EBITDA discount to global utility peers</strong>. Liquidity-discount-adjusted, Kepler still arrives at a €28 target price (vs €20.90 spot) — implying 34% upside.</p>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Live trading view (Euronext Brussels)</h3>
+    <div class="tv-wrap">
+      <div id="tradingview_widget" style="width:100%; height:100%;"></div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">Path to €28 — what unlocks the catalyst</h3>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-h"><span class="card-dot bull"></span><h4>1. Sanctions Clarity</h4></div>
+        <p>Russian LNG ban (14th EU sanctions package) was the trigger that pushed FLUX to a 65% RAB discount at the lows. Management has confirmed <strong>zero financial impact</strong>. Each clarification reduces the discount.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot bull"></span><h4>2. H₂/CO₂ Tariff Framework Finalized</h4></div>
+        <p>The single biggest catalyst. Once the regulator sets a tariff methodology for H₂ and CO₂ assets, the unremunerated "latent" capex converts into RAB → triggers a positive net income catch-up.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-dot bull"></span><h4>3. €300m Sovereign Raid Resolved</h4></div>
+        <p>The Belgian government's announced withdrawal from regulatory accounts is being formally contested. A favorable resolution removes a pricing overhang and reaffirms the rules-based regulatory framework.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BULL BEAR -->
+<section id="bullbear">
+  <div class="container">
+    <div class="section-tag">Section 08 · Investment Debate</div>
+    <h2>Bull vs Bear — the polarized narrative</h2>
+    <p class="lead">Most investors look at FLUX and see a sleepy regulated utility. The right framing isn't bull <em>or</em> bear — it's understanding what each side is actually arguing about.</p>
+
+    <div class="bb-grid">
+      <div class="bb-side bull">
+        <h3><span class="bb-icon">▲</span>The Bull Case</h3>
+        <p class="bb-tagline">"A defensive yield trap that's mispriced by 35%."</p>
+        <ul class="bb-list">
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Pure dividend play with peer-beating ~7% yield</div>
+            <div class="bb-item-p">€1.40/share dividend held flat for four consecutive years (2022-25). Mathematically dictated by the regulator — completely insulated from gas volumes. <strong>Higher yield than Snam, Enagás, or Italgas with lower country risk.</strong></div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ 35% discount to RAB is structurally unjustified</div>
+            <div class="bb-item-p">For a fully-regulated utility with a 4-year visible tariff regime + robust balance sheet + secured dividend coverage, a 35% RAB discount + implied 11% market WACC is "nonsensical" (Kepler).</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Long-term RAB revival via the H₂/CO₂ pivot</div>
+            <div class="bb-item-p">Latent assets currently dragging the bottom line will convert into regulated RAB once the framework is formalized — triggering a positive net income catch-up. <strong>Kepler models this revival but excludes it from base case</strong> (i.e. valuation today is "free" optionality).</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Geopolitical immunity (the misunderstood risk)</div>
+            <div class="bb-item-p">Fluxys is a tolling infrastructure provider — not a gas trader. Russian LNG sanctions, Strait of Hormuz disruptions, Qatari LNG cuts → all mean nothing financially. Long-term ship-or-pay contracts continue to bill regardless.</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Path to net cash position by 2027 (ex-transition)</div>
+            <div class="bb-item-p">Excluding the H₂/CO₂ outlays, base case projects Fluxys reaches a <strong>net cash position by FY27</strong>. The balance sheet is funding the transition, not stretching to do it.</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="bb-side bear">
+        <h3><span class="bb-icon">▼</span>The Bear Case</h3>
+        <p class="bb-tagline">"A liquidity trap with a regulatory ceiling and political volatility."</p>
+        <ul class="bb-list">
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Structural illiquidity is permanent</div>
+            <div class="bb-item-p">10% free float, average daily volume <strong>under €0.1m</strong>. Most institutional investors structurally cannot own a meaningful position. Justifies a permanent liquidity discount (Kepler applies 25%) — and there's no path to fixing this without a parent-level decision.</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Sovereign intervention risk just crystallized</div>
+            <div class="bb-item-p">Belgian government's Nov 2025 budget announced intent to <strong>unilaterally withdraw €300m from regulatory adjustment accounts</strong>. Currently being contested. If executed, it's a violation of the "rules-based" framework that justified the low risk premium in the first place.</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Capex / debt expansion beyond regulatory cover</div>
+            <div class="bb-item-p">Net debt doubled from €159m to €327m in one year. Capex tripled to €262m. <strong>The H₂/CO₂ infrastructure is being built without finalized regulatory tariffs</strong> — if the framework is unfavorable or delayed, those assets sit in limbo.</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Mature core market — RAB contraction risk</div>
+            <div class="bb-item-p">Without the speculative H₂/CO₂ contribution, the base case actually projects <strong>~2% annual contraction</strong> of the gas RAB. Belgian gas demand is structurally falling. The transition isn't optional — it's the only growth path.</div>
+          </li>
+          <li class="bb-item">
+            <div class="bb-item-h">▸ Chicken-and-egg transition risk</div>
+            <div class="bb-item-p">Fluxys is building H₂ and CO₂ pipelines today. But industrial demand for those molecules at scale won't materialize until the late 2020s/2030s. That's a 5-10 year period of <strong>capex carrying cost without revenue</strong> — and it depends on government support that just got cut by €250m for hydrogen.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:32px; background:linear-gradient(135deg, rgba(0,212,180,0.04), rgba(167,139,250,0.04)); border-color:rgba(0,212,180,0.25);">
+      <h4 style="margin-bottom:10px;">⚖ The reconciled view</h4>
+      <p style="font-size:14px; color:var(--text-1);">Both sides are correct on facts. The disagreement is about <strong>weighting</strong>. The bull says: the regulator has historically honored the framework, the dividend math is unbreakable, and the H₂/CO₂ optionality is undervalued. The bear says: the past does not bind a sovereign that has already announced intent to deviate, and unremunerated capex is a real cash drain. <strong>The right position size depends on confidence that the Belgian regulatory rules will hold.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- RISKS -->
+<section id="risks">
+  <div class="container">
+    <div class="section-tag">Section 09 · Risks &amp; Controversies</div>
+    <h2>What can actually break the thesis</h2>
+    <p class="lead">Three risks rated by severity. Two are tail events. One is structural.</p>
+
+    <div class="risk-grid">
+      <div class="risk-card">
+        <span class="risk-sev">High Severity · Active</span>
+        <h4>Sovereign regulatory raid (€300m)</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">In its November 2025 budget, the Belgian federal government announced it would withdraw €300m from the positive balances of Fluxys's regulatory adjustment accounts. Management is formally contesting the legality. <strong>If executed, it directly damages the rules-based regulatory framework that the low-risk thesis depends on.</strong></p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Watch:</strong> Court rulings, formal CREG response, potential precedent-setting impact on other Belgian utilities.</p>
+      </div>
+      <div class="risk-card medium">
+        <span class="risk-sev">Medium Severity · Multi-year</span>
+        <h4>Transition timing mismatch (chicken-and-egg)</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">Fluxys is spending €262m/year on H₂ and CO₂ pipelines now. Industrial offtake at scale is a 2028-2032 story. Hydrogen tariff framework still in development; regulator could set returns below the required hurdle rate. <strong>Belgian government already cut a €250m H₂ funding budget</strong> — a hostile signal.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Watch:</strong> Tariff methodology consultations from CREG; first H₂ industrial offtake contracts; CEF (Connecting Europe Facility) grant awards.</p>
+      </div>
+      <div class="risk-card medium">
+        <span class="risk-sev">Medium Severity · Structural</span>
+        <h4>Liquidity trap (10% free float)</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">Average daily volume <€0.1m means most large funds can't initiate or exit a meaningful position. Forces a permanent 25% liquidity discount in DCF models. <strong>Parent Fluxys SA owns 90% — only Fluxys SA could decide to release float.</strong> Single fund could move the share price violently.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Watch:</strong> Any Fluxys SA strategic review · Possible secondary offering (would be highly accretive). Otherwise, this is structurally permanent.</p>
+      </div>
+      <div class="risk-card low">
+        <span class="risk-sev">Low Severity · Misunderstood</span>
+        <h4>EU sanctions on Russian LNG (14th package)</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">The trigger that drove FLUX to a 65% RAB discount at the lows. The 14th EU sanctions package (effective March 2025) prohibits transshipment of Russian LNG to non-EU countries via EU terminals. <strong>Fluxys management confirmed zero financial impact</strong> — Fluxys is a tolling provider, not an importer. Long-term ship-or-pay contracts pay regardless of physical flow.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Read:</strong> The retail panic created a buying opportunity, not a fundamental risk. Ironically, this is the discount that supports the bull case.</p>
+      </div>
+      <div class="risk-card low">
+        <span class="risk-sev">Low Severity · Insulated</span>
+        <h4>Strait of Hormuz / Qatari LNG disruption</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">Iranian/Hormuz tensions in 2025-26 created concerns about Qatari LNG flows to Zeebrugge. Fluxys management confirmed: <strong>under "ship or pay" terminalling contracts, payment obligations remain in force regardless of supply fluctuations.</strong></p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Read:</strong> Geographic supply risks always create headlines but rarely translate into Fluxys earnings risk.</p>
+      </div>
+      <div class="risk-card low">
+        <span class="risk-sev">Low Severity · Lagged</span>
+        <h4>Interest rate / WACC adjustment lag</h4>
+        <p style="font-size:13px; color:var(--text-2); margin-top:10px;">The 2024-27 tariff used a 1.68% risk-free rate at launch — quickly outdated by the higher-rate regime. Required complex re-consultations with CREG. Vast majority of debt is fixed, so cost-pass-through is fine eventually — but creates short-term mismatches.</p>
+        <p style="font-size:12px; color:var(--text-3); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"><strong>Watch:</strong> 2027-2031 tariff period methodology · OLO yield trajectory.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPLY CHAIN -->
+<section id="supply-chain">
+  <div class="container">
+    <div class="section-tag">Section 10 · Ecosystem</div>
+    <h2>The supply chain — who feeds Fluxys, and who Fluxys feeds</h2>
+    <p class="lead">Critical to understand: Fluxys is just the toll road. The molecules come from elsewhere; they go elsewhere. Vulnerability and value capture both live at the edges of this map.</p>
+
+    <div class="sc-grid">
+      <div class="sc-side">
+        <h3 style="display:flex; align-items:center; gap:10px;"><span class="card-dot gas"></span>Upstream Suppliers</h3>
+        <p style="font-size:12px; color:var(--text-3); margin-top:6px; margin-bottom:14px;">Where the gas comes from before it touches Belgian pipes</p>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Equinor (Norway)</div>
+            <div class="sc-detail">Strategic gas supplier · 150-175 TWh/year via the Zeepipe offshore pipeline. Also CO₂HighwayEurope partner for offshore storage.</div>
+          </div>
+          <div class="sc-loc">NORTH SEA</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Qatari LNG providers</div>
+            <div class="sc-detail">Long-term "ship or pay" terminalling contracts at Zeebrugge. Risk: Strait of Hormuz disruption — but financial obligations remain in force.</div>
+          </div>
+          <div class="sc-loc">QATAR</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Russian LNG providers</div>
+            <div class="sc-detail">Long-term capacity at Zeebrugge. Subject to 14th EU sanctions package (March 2025) — transshipment to non-EU now banned. Net financial impact: zero.</div>
+          </div>
+          <div class="sc-loc">RUSSIA</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Green Logix Biogas</div>
+            <div class="sc-detail">First direct biomethane injection into the Fluxys network. Volumes equivalent to 7,000 households today — small but symbolic of the multi-molecule pivot.</div>
+          </div>
+          <div class="sc-loc">LOMMEL, BE</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">UK Producers (via Interconnector + BBL)</div>
+            <div class="sc-detail">UK gas reaches Belgium via subsea pipelines. Fluxys holds 15.1% Interconnector + 25% BBL stakes.</div>
+          </div>
+          <div class="sc-loc">UK / NL</div>
+        </div>
+      </div>
+
+      <div class="sc-side">
+        <h3 style="display:flex; align-items:center; gap:10px;"><span class="card-dot"></span>Downstream Partners</h3>
+        <p style="font-size:12px; color:var(--text-3); margin-top:6px; margin-bottom:14px;">Where Fluxys's molecules end up</p>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Open Grid Europe (OGE)</div>
+            <div class="sc-detail">Germany's largest TSO. Receives 214 TWh/year from Fluxys — equivalent to ~25% of total German gas consumption. Fluxys owns 24.1% (bidding for 75.89%).</div>
+          </div>
+          <div class="sc-loc">GERMANY</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Belgian DSOs (Fluvius, Ores, Resa, Sibelga)</div>
+            <div class="sc-detail">Distribution operators delivering low-pressure gas to <strong>3.15m households + 450,000 SMEs</strong>. Long-term concern: domestic gas demand declining structurally.</div>
+          </div>
+          <div class="sc-loc">BELGIUM</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">209 Direct Industrial Sites</div>
+            <div class="sc-detail">Manufacturing + chemicals consuming ~44 TWh/year. Risk: companies pausing energy transition plans due to cost pressures.</div>
+          </div>
+          <div class="sc-loc">BE INDUSTRIAL</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Power Plants (gas-fired)</div>
+            <div class="sc-detail">23 TWh consumed in 2024. Function as flexible baseload. Long-term decline as renewables scale, but useful as backup capacity.</div>
+          </div>
+          <div class="sc-loc">BE / DE</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">Gasunie / Hynetwork (NL)</div>
+            <div class="sc-detail">Dutch TSO + future H₂ network operator. JDA signed to interconnect Belgian + Dutch H₂ grids by 2030.</div>
+          </div>
+          <div class="sc-loc">NETHERLANDS</div>
+        </div>
+
+        <div class="sc-row">
+          <div>
+            <div class="sc-name">GRTgaz (FR) + Creos (LU)</div>
+            <div class="sc-detail">HY4Link project — cross-border H₂ infrastructure linking Belgian/French/Luxembourg industrial hubs.</div>
+          </div>
+          <div class="sc-loc">FR / LU</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">M&amp;A track record (the international expansion story)</h3>
+    <table>
+      <thead>
+        <tr><th>Target</th><th>Year</th><th>Stake</th><th>Strategic rationale</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Open Grid Europe</strong> (Germany)</td><td>2023</td><td class="num">24.1%</td><td>Cross-border H₂/CO₂ corridor; bidding now (Apr 2026) for remaining 75.89% with Brookfield + GIP</td></tr>
+        <tr><td>Vier Gas Transport (Germany)</td><td>2023</td><td class="num">24.1%</td><td>Holding company for OGE</td></tr>
+        <tr><td>BBL Pipeline (UK ↔ NL)</td><td>2023</td><td class="num">25%</td><td>Bidirectional cross-Channel flow capacity</td></tr>
+        <tr><td>Trans Adriatic Pipeline (TAP)</td><td>2023</td><td class="num">20%</td><td>Caspian/Azerbaijani gas to Italy — Southern corridor</td></tr>
+        <tr><td>GNL Quintero (Chile)</td><td>2022</td><td class="num">20%</td><td>Latin American LNG terminal exposure</td></tr>
+        <tr><td>Transportadora Brasileira (Brazil)</td><td>2021</td><td class="num">27.5%</td><td>South American gas transmission</td></tr>
+        <tr><td>Transitgas AG (Switzerland)</td><td>2011</td><td class="num">46.0%</td><td>Alpine transit corridor</td></tr>
+        <tr><td>Distrigaz &amp; Co.</td><td>2008</td><td class="num">100%</td><td>Foundational acquisition · Belgian transmission</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- INVESTMENT THESIS -->
+<section id="thesis">
+  <div class="container">
+    <div class="section-tag">Section 11 · Synthesis</div>
+    <h2>The investment thesis in three sentences</h2>
+
+    <div class="grid-3" style="margin-top:30px;">
+      <div class="card" style="background:linear-gradient(165deg, rgba(0,212,180,0.06), rgba(79,195,247,0.02)); border-color:rgba(0,212,180,0.3);">
+        <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--teal); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">The Bond Component</div>
+        <h3 style="margin-bottom:12px;">€1.40 dividend × 7% yield × low-risk regulator =</h3>
+        <p style="font-size:14px; color:var(--text-1);">A bond-like income instrument with <strong>structurally guaranteed cash flow</strong> mathematically dictated by Belgium's CREG framework. Decoupled from gas volumes. Insulated from interest rates. Sized at 90% of base case value.</p>
+      </div>
+      <div class="card" style="background:linear-gradient(165deg, rgba(167,139,250,0.06), rgba(251,146,60,0.02)); border-color:rgba(167,139,250,0.3);">
+        <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--hydrogen); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">The Optionality</div>
+        <h3 style="margin-bottom:12px;">20-year H₂ + CO₂ exclusive monopolies =</h3>
+        <p style="font-size:14px; color:var(--text-1);">Free optionality not in current valuation. Once tariff frameworks formalize, H₂ and CO₂ latent capex (€8.3bn over 2025-34) converts into RAB → triggers a positive earnings catch-up. Sized at 10% of base case but uncapped upside.</p>
+      </div>
+      <div class="card" style="background:linear-gradient(165deg, rgba(16,185,129,0.06), rgba(0,212,180,0.02)); border-color:rgba(16,185,129,0.3);">
+        <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--bull); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">The Mispricing</div>
+        <h3 style="margin-bottom:12px;">35% RAB discount + 11% implied WACC =</h3>
+        <p style="font-size:14px; color:var(--text-1);">An emotional reaction to (a) Russian LNG sanctions optics that proved benign and (b) sovereign €300m raid that's being contested. The market is pricing FLUX as if it were an unregulated trader. <strong>The math doesn't reconcile</strong> — implying ~34% upside to fair value.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px; margin-bottom:18px;">What I'd watch — the four critical signposts</h3>
+    <div class="grid-4">
+      <div class="card">
+        <h4 style="color:var(--teal);">📜 1. CO₂ + H₂ Tariff Methodology</h4>
+        <p style="font-size:13px; margin-top:8px;">When CREG publishes the regulatory framework for transition assets. The single biggest re-rating catalyst.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--gold);">🏛 2. €300m Withdrawal Resolution</h4>
+        <p style="font-size:13px; margin-top:8px;">Court rulings or government negotiations. Determines whether Belgian regulatory framework is rules-based or discretionary.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--hydrogen);">🔧 3. Pipeline Construction Milestones</h4>
+        <p style="font-size:13px; margin-top:8px;">Antwerp/Ghent H₂ and CO₂ pipelines under construction now. On-time/on-budget validates execution credibility.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--cyan);">⚓ 4. Zeebrugge Operational Stability</h4>
+        <p style="font-size:13px; margin-top:8px;">Post-sanctions LNG terminal utilization. Confirms ship-or-pay revenue resilience and removes the bear's geopolitical narrative.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:50px; padding:32px; background:linear-gradient(135deg, var(--bg-2), var(--bg-1)); border:1px solid var(--border); border-radius:16px;">
+      <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">Sell-side consensus (Apr 2026)</div>
+      <h3 style="margin-bottom:14px;">Kepler Cheuvreux: Buy · €28 PT · 34% upside</h3>
+      <p style="font-size:14px; color:var(--text-1); max-width: 900px;">"Pure dividend play with extremely limited downside risk... 35% discount to RAB unjustified... implied 11% market WACC nonsensical for a regulated utility... excludes future H₂/CO₂ contributions from base case (i.e. these provide free upside)... base case projects net cash position by 2027 ex-transition."</p>
+      <p style="font-size:13px; color:var(--text-3); margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-style:italic;">Coverage is concentrated. Kepler is essentially the only sell-side broker actively modeling FLUX BB. ING covers from a credit perspective (fixed-income). Bernstein flagged the H₂ funding cut headline. Otherwise the sellside is silent — which is itself the inefficiency.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div style="font-weight:700; color:var(--text-1); font-size:14px;">Fluxys Belgium (FLUX BB) · Hedge Fund Research Dashboard</div>
+    <div style="margin-top:10px;">Built from primary source PDFs · AlphaSense Generative Search · Kepler Cheuvreux equity research · Fluxys 2025 Integrated Annual Report</div>
+    <div class="disclaimer">
+      <strong>Disclaimer:</strong> This dashboard is for educational and research purposes only. It is not investment advice, not a solicitation to buy or sell any security, and should not be relied upon for investment decisions. All data sourced from third-party research reports (Kepler Cheuvreux, ING, AlphaSense GenSearch, Bernstein) and Fluxys Belgium public filings (FY24/FY25 Integrated Annual Reports, press releases). Forecasts and broker views reflect dates as marked. The author has no position in FLUX BB.
+    </div>
+    <div style="margin-top:18px; font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-3);">v1.0 · Generated April 2026</div>
+  </div>
+</footer>
+
+<!-- TradingView Widget -->
+<script type="text/javascript">
+  new (function() {
+    var script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.async = true;
+    script.onload = function() {
+      try {
+        new TradingView.widget({
+          autosize: true,
+          symbol: "EURONEXT:FLUX",
+          interval: "D",
+          timezone: "Europe/Brussels",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          toolbar_bg: "#0d1117",
+          enable_publishing: false,
+          hide_top_toolbar: false,
+          hide_legend: false,
+          save_image: false,
+          container_id: "tradingview_widget",
+          backgroundColor: "rgba(13, 17, 23, 1)",
+          gridColor: "rgba(31, 42, 58, 0.6)",
+          studies: ["MASimple@tv-basicstudies"]
+        });
+      } catch(e) {
+        document.getElementById('tradingview_widget').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-2);font-size:13px;text-align:center;padding:40px;">TradingView widget failed to load. Live chart available at <a href="https://www.tradingview.com/symbols/EURONEXT-FLUX/" style="color:var(--teal);" target="_blank">tradingview.com/symbols/EURONEXT-FLUX</a></div>';
+      }
+    };
+    document.head.appendChild(script);
+  })();
+</script>
+
+<script>
+/* ANIMATED COUNTERS */
+function animateCounter(el) {
+  const target = parseFloat(el.getAttribute('data-target'));
+  const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
+  const prefix = el.getAttribute('data-prefix') || '';
+  const suffix = el.getAttribute('data-suffix') || '';
+  const duration = 1600;
+  const startTime = performance.now();
+  const startVal = 0;
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const value = startVal + (target - startVal) * eased;
+    const formatted = decimals > 0
+      ? value.toFixed(decimals)
+      : Math.round(value).toLocaleString('en-US');
+    let html = prefix + formatted;
+    if (suffix) html += '<span class="unit">' + suffix + '</span>';
+    el.innerHTML = html;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      if (entry.target.classList.contains('kpi-num') && !entry.target.dataset.animated) {
+        animateCounter(entry.target);
+        entry.target.dataset.animated = 'true';
+      }
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('.kpi-num').forEach(el => observer.observe(el));
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+/* CHART.JS GLOBAL THEME */
+Chart.defaults.color = '#8a96a8';
+Chart.defaults.borderColor = '#1f2a3a';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.legend.labels.padding = 14;
+Chart.defaults.plugins.tooltip.backgroundColor = '#1a2332';
+Chart.defaults.plugins.tooltip.borderColor = '#00d4b4';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.titleColor = '#f4f6fb';
+Chart.defaults.plugins.tooltip.bodyColor = '#c5cdd9';
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 6;
+Chart.defaults.plugins.tooltip.titleFont = { weight: '600', size: 12 };
+Chart.defaults.plugins.tooltip.bodyFont = { size: 11 };
+
+const gridColor = 'rgba(255,255,255,0.04)';
+const baseScales = {
+  x: { grid: { color: gridColor }, ticks: { color: '#5d6878', font: { size: 10 } } },
+  y: { grid: { color: gridColor }, ticks: { color: '#5d6878', font: { size: 10 } } }
+};
+
+/* CHARTS */
+new Chart(document.getElementById('revenueSegmentChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Transmission', 'LNG Terminalling', 'Storage', 'Other Regulated'],
+    datasets: [{
+      data: [475, 95, 50, 30],
+      backgroundColor: ['#00d4b4','#4fc3f7','#fbbf24','#a78bfa'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: c => `${c.label}: ~€${c.parsed}m` } }
+    },
+    cutout: '60%'
+  }
+});
+
+new Chart(document.getElementById('rabChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Transmission', 'LNG Terminalling', 'Storage'],
+    datasets: [{
+      data: [2143.8, 306.0, 224.5],
+      backgroundColor: ['#00d4b4','#4fc3f7','#fbbf24'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: c => `${c.label}: €${c.parsed.toFixed(1)}m (${(c.parsed/2674.3*100).toFixed(1)}%)` } }
+    },
+    cutout: '60%'
+  }
+});
+
+const incomeYears = ['2018','2019','2020','2021','2022','2023','2024','2025','2026E','2027E'];
+new Chart(document.getElementById('incomeChart'), {
+  type: 'bar',
+  data: {
+    labels: incomeYears,
+    datasets: [
+      {
+        label: 'Revenue',
+        data: [503.2, 531.0, 560.6, 573.2, 912.6, 592.8, 608.8, 650.5, 628.1, 638.1],
+        backgroundColor: 'rgba(79,195,247,0.7)', borderRadius: 4
+      },
+      {
+        label: 'EBITDA',
+        data: [278.4, 297.3, 313.6, 318.9, 323.2, 285.8, 302.3, 320.1, 310.5, 314.7],
+        backgroundColor: 'rgba(0,212,180,0.85)', borderRadius: 4
+      },
+      {
+        label: 'EBIT',
+        data: [120.6, 134.8, 133.5, 137.8, 147.3, 129.6, 133.9, 133.9, 133.5, 134.7],
+        backgroundColor: 'rgba(167,139,250,0.85)', borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: baseScales.x,
+      y: { ...baseScales.y, ticks: { ...baseScales.y.ticks, callback: v => '€' + v + 'm' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('netDivChart'), {
+  type: 'line',
+  data: {
+    labels: incomeYears,
+    datasets: [
+      {
+        label: 'Net Profit (€m)',
+        data: [54.5, 69.5, 73.2, 75.5, 83.7, 77.4, 82.1, 74.9, 84.5, 85.6],
+        borderColor: '#00d4b4', backgroundColor: 'rgba(0,212,180,0.1)',
+        tension: 0.3, fill: true, yAxisID: 'y'
+      },
+      {
+        label: 'DPS (€)',
+        data: [1.26, 1.30, 1.37, 1.38, 1.40, 1.40, 1.40, 1.40, 1.44, 1.45],
+        borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.05)',
+        tension: 0.3, fill: false, yAxisID: 'y1', borderDash: [4,4]
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: baseScales.x,
+      y: { ...baseScales.y, position: 'left', ticks: { ...baseScales.y.ticks, callback: v => '€' + v + 'm' } },
+      y1: {
+        ...baseScales.y, position: 'right',
+        ticks: { ...baseScales.y.ticks, callback: v => '€' + v.toFixed(2) },
+        grid: { display: false }
+      }
+    }
+  }
+});
+
+new Chart(document.getElementById('debtChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2020','2021','2022','2023','2024','2025','2026E','2027E'],
+    datasets: [
+      {
+        label: 'Net Financial Debt (€m)',
+        data: [908.5, 771.7, 461.6, 219.4, 159.8, 326.9, 122.2, -67.3],
+        backgroundColor: ctx => {
+          const v = ctx.parsed.y;
+          if (v < 0) return 'rgba(16,185,129,0.85)';
+          if (v > 250) return 'rgba(239,68,68,0.85)';
+          return 'rgba(0,212,180,0.7)';
+        },
+        borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => `Net Debt: €${c.parsed.y.toFixed(1)}m` } }
+    },
+    scales: {
+      x: baseScales.x,
+      y: { ...baseScales.y, ticks: { ...baseScales.y.ticks, callback: v => '€' + v + 'm' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('rabGrowthChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2024','2025','2026E','2027E','2028E','Long-term (2030s)'],
+    datasets: [
+      {
+        label: 'Transmission RAB',
+        data: [2044.3, 2143.8, 2280, 2450, 2700, 4500],
+        backgroundColor: 'rgba(0,212,180,0.85)', borderRadius: 4, stack: 'main'
+      },
+      {
+        label: 'LNG Terminalling RAB',
+        data: [313.0, 306.0, 310, 320, 350, 400],
+        backgroundColor: 'rgba(79,195,247,0.85)', borderRadius: 4, stack: 'main'
+      },
+      {
+        label: 'Storage RAB',
+        data: [216.3, 224.5, 235, 245, 260, 320],
+        backgroundColor: 'rgba(251,191,36,0.85)', borderRadius: 4, stack: 'main'
+      },
+      {
+        label: 'H₂ + CO₂ (latent → RAB)',
+        data: [0, 100, 250, 500, 900, 3200],
+        backgroundColor: 'rgba(167,139,250,0.85)', borderRadius: 4, stack: 'main'
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: €${c.parsed.y.toFixed(0)}m` } }
+    },
+    scales: {
+      x: { ...baseScales.x, stacked: true },
+      y: { ...baseScales.y, stacked: true, ticks: { ...baseScales.y.ticks, callback: v => '€' + (v/1000).toFixed(1) + 'bn' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('capexChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2018','2019','2020','2021','2022','2023','2024','2025','2026E','2027E'],
+    datasets: [{
+      label: 'Capex (€m)',
+      data: [83.4, 98.0, 47.3, 56.5, 116.9, 184.8, 92.1, 261.8, 280, 290],
+      backgroundColor: ctx => {
+        const i = ctx.dataIndex;
+        if (i >= 7) return 'rgba(167,139,250,0.85)';  // transition years - purple
+        return 'rgba(0,212,180,0.5)';
+      },
+      borderColor: ctx => {
+        const i = ctx.dataIndex;
+        if (i >= 7) return '#a78bfa';
+        return '#00d4b4';
+      },
+      borderWidth: 2,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: {
+        label: c => `Capex: €${c.parsed.y.toFixed(0)}m`,
+        afterLabel: c => c.dataIndex >= 7 ? 'H₂/CO₂ transition phase' : 'Pre-transition'
+      } }
+    },
+    scales: {
+      x: baseScales.x,
+      y: { ...baseScales.y, ticks: { ...baseScales.y.ticks, callback: v => '€' + v + 'm' } }
+    }
+  }
+});
+
+/* MAP TOOLTIP */
+const tooltip = document.getElementById('mapTooltip');
+const mapWrap = document.querySelector('.map-wrap');
+
+document.querySelectorAll('.map-asset').forEach(asset => {
+  asset.addEventListener('mouseenter', (e) => {
+    const name = asset.getAttribute('data-name');
+    const type = asset.getAttribute('data-type');
+    const detail = asset.getAttribute('data-detail');
+    tooltip.innerHTML = `<strong>${name}</strong><div style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">${type}</div>${detail}`;
+    tooltip.classList.add('visible');
+  });
+  asset.addEventListener('mousemove', (e) => {
+    const rect = mapWrap.getBoundingClientRect();
+    const x = Math.min(e.clientX - rect.left + 18, rect.width - 250);
+    const y = Math.min(e.clientY - rect.top + 18, rect.height - 100);
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  });
+  asset.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+/* SMOOTH SCROLL FOR NAV */
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
